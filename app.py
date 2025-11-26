@@ -78,7 +78,7 @@ STRATEGIES = {
 # Page configuration
 st.set_page_config(
     page_title=APP_TITLE,
-    page_icon=APP_ICON,
+    page_icon=None,
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -103,10 +103,11 @@ if dark_mode:
             background-color: #0e1117;
         }
         .main-header {
-            font-size: 4.5rem;
-            font-weight: 700;
+            font-size: 7.5rem;
+            font-weight: 800;
             color: #fafafa;
             margin-bottom: 0;
+            letter-spacing: -2px;
         }
         .sub-header {
             color: #888;
@@ -161,10 +162,11 @@ else:
             background-color: #ffffff;
         }
         .main-header {
-            font-size: 4.5rem;
-            font-weight: 700;
+            font-size: 7.5rem;
+            font-weight: 800;
             color: #1a1a1a;
             margin-bottom: 0;
+            letter-spacing: -2px;
         }
         .sub-header {
             color: #555;
