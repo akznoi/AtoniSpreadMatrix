@@ -4,8 +4,10 @@ from datetime import date, datetime
 from typing import List, Optional, Tuple, Union
 import pandas as pd
 import yfinance as yf
+import streamlit as st
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def get_expiration_dates(ticker: str) -> List[date]:
     """
     Get available options expiration dates for a ticker.
@@ -43,6 +45,7 @@ def get_expiration_dates(ticker: str) -> List[date]:
         raise ValueError(f"Error fetching expiration dates for {ticker}: {str(e)}")
 
 
+@st.cache_data(ttl=120, show_spinner=False)  # Cache for 2 minutes (options prices change frequently)
 def get_options_chain(
     ticker: str, 
     expiration: Union[str, date]

@@ -5,10 +5,12 @@ from datetime import datetime, date
 import numpy as np
 import pandas as pd
 import yfinance as yf
+import streamlit as st
 
 from config import DAYS_PER_YEAR, TRADING_DAYS_PER_YEAR
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def calculate_iv_rank(ticker: str, current_iv: float, lookback_days: int = 252) -> Dict[str, Any]:
     """
     Calculate IV Rank and IV Percentile.
@@ -83,6 +85,7 @@ def calculate_iv_rank(ticker: str, current_iv: float, lookback_days: int = 252) 
         }
 
 
+@st.cache_data(ttl=3600, show_spinner=False)  # Cache for 1 hour
 def get_earnings_info(ticker: str) -> Dict[str, Any]:
     """
     Get earnings date information.
@@ -168,6 +171,7 @@ def get_earnings_info(ticker: str) -> Dict[str, Any]:
         }
 
 
+@st.cache_data(ttl=3600, show_spinner=False)  # Cache for 1 hour
 def get_dividend_info(ticker: str) -> Dict[str, Any]:
     """
     Get dividend information including ex-dividend date.
@@ -257,6 +261,7 @@ def calculate_liquidity_score(options_df: pd.DataFrame) -> Dict[str, Any]:
         }
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def calculate_put_call_ratio(ticker: str) -> Dict[str, Any]:
     """
     Calculate put/call ratio for sentiment analysis.
@@ -320,6 +325,7 @@ def calculate_put_call_ratio(ticker: str) -> Dict[str, Any]:
         }
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def calculate_rsi(ticker: str, period: int = 14) -> Dict[str, Any]:
     """
     Calculate Relative Strength Index (RSI).
@@ -371,6 +377,7 @@ def calculate_rsi(ticker: str, period: int = 14) -> Dict[str, Any]:
         return {"rsi": None, "signal": None, "error": str(e)}
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def calculate_support_resistance(ticker: str) -> Dict[str, Any]:
     """
     Calculate support and resistance levels.
@@ -473,6 +480,7 @@ def calculate_expected_move(current_price: float, iv: float, days_to_expiry: int
         return {"expected_move": None, "error": str(e)}
 
 
+@st.cache_data(ttl=3600, show_spinner=False)  # Cache for 1 hour
 def get_beta(ticker: str) -> Dict[str, Any]:
     """
     Get stock beta (volatility relative to market).
@@ -552,6 +560,7 @@ def calculate_prob_50_profit(spread) -> float:
         return None
 
 
+@st.cache_data(ttl=3600, show_spinner=False)  # Cache for 1 hour
 def get_historical_earnings_moves(ticker: str, num_quarters: int = 4) -> Dict[str, Any]:
     """
     Get historical stock moves around earnings.
@@ -616,6 +625,7 @@ def get_historical_earnings_moves(ticker: str, num_quarters: int = 4) -> Dict[st
         return {"avg_move": None, "moves": [], "error": str(e)}
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def get_sector_performance(ticker: str) -> Dict[str, Any]:
     """
     Get sector performance relative to market.

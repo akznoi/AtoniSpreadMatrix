@@ -4,10 +4,14 @@ from typing import Dict, Any, Optional, List
 import numpy as np
 import pandas as pd
 import yfinance as yf
+import streamlit as st
+import time
 
 from config import HISTORICAL_VOL_DAYS, TRADING_DAYS_PER_YEAR
 
 
+# Cache stock info for 5 minutes to avoid rate limits
+@st.cache_data(ttl=300, show_spinner=False)
 def get_stock_info(ticker: str) -> Dict[str, Any]:
     """
     Fetch current stock information.
@@ -63,6 +67,7 @@ def get_stock_price(ticker: str) -> float:
     return info["price"]
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def get_historical_volatility(
     ticker: str, 
     days: int = HISTORICAL_VOL_DAYS,
@@ -106,6 +111,7 @@ def get_historical_volatility(
         raise ValueError(f"Error calculating volatility for {ticker}: {str(e)}")
 
 
+@st.cache_data(ttl=3600, show_spinner=False)  # Cache for 1 hour
 def get_risk_free_rate() -> float:
     """
     Fetch current risk-free rate (10-year Treasury yield).
@@ -128,6 +134,7 @@ def get_risk_free_rate() -> float:
     return RISK_FREE_RATE
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def get_price_history(ticker: str, period: str = "3mo") -> pd.DataFrame:
     """
     Fetch historical price data for charting.
@@ -147,6 +154,7 @@ def get_price_history(ticker: str, period: str = "3mo") -> pd.DataFrame:
         raise ValueError(f"Error fetching price history for {ticker}: {str(e)}")
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def get_trend_analysis(ticker: str) -> Dict[str, Any]:
     """
     Analyze price trend using moving averages.
@@ -215,6 +223,7 @@ def get_trend_analysis(ticker: str) -> Dict[str, Any]:
         return {"trend": "Unknown", "strength": 0, "description": f"Error: {str(e)}"}
 
 
+@st.cache_data(ttl=600, show_spinner=False)  # Cache news for 10 minutes
 def get_stock_news(ticker: str, max_items: int = 10) -> List[Dict[str, Any]]:
     """
     Fetch recent news for a stock.
