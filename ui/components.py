@@ -215,6 +215,9 @@ def display_spreads_table(spreads: List[SpreadType]) -> Optional[int]:
             net_prem = spread.net_credit
             prem_label = "Credit"
         
+        # Calculate risk/reward ratio
+        risk_reward = abs(spread.max_loss) / spread.max_profit if spread.max_profit > 0 else 0
+        
         data.append({
             "#": i + 1,
             "Expiration": spread.expiration_date.strftime("%b %d"),
@@ -222,7 +225,7 @@ def display_spreads_table(spreads: List[SpreadType]) -> Optional[int]:
             "Long Strike": f"${spread.long_strike:.2f}",
             "Width": f"${spread.spread_width:.2f}",
             f"{prem_label}/Share": f"${net_prem:.2f}",
-            f"Total {prem_label}": f"${net_prem * 100:.2f}",
+            "Risk/Reward": f"{risk_reward:.2f}",
             "Max Profit": f"${spread.max_profit:.2f}",
             "Max Loss": f"${spread.max_loss:.2f}",
             "Breakeven": f"${spread.breakeven:.2f}",
