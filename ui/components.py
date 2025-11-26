@@ -622,19 +622,21 @@ def display_trade_management(trade_mgmt: Dict[str, Any], prob_50: float = None, 
     
     with col2:
         st.markdown("**Stop Loss Targets (Close When)**")
-        stops = trade_mgmt.get("stop_loss_levels", {})
-        if stops and max_profit:
-            # Calculate debit to close at each stop loss level
-            debit_1x = max_profit + stops.get('1x_credit', 0)
-            debit_2x = max_profit + stops.get('2x_credit', 0)
-            debit_50 = max_profit + stops.get('50_pct_max_loss', 0)
-            st.markdown(f"- 1x Credit Loss: -${stops.get('1x_credit', 0):.2f} | Close @ ${debit_1x:.2f} debit")
-            st.markdown(f"- 2x Credit Loss: -${stops.get('2x_credit', 0):.2f} | Close @ ${debit_2x:.2f} debit")
-            st.markdown(f"- 50% Max Loss: -${stops.get('50_pct_max_loss', 0):.2f} | Close @ ${debit_50:.2f} debit")
-        elif stops:
-            st.markdown(f"- 1x Credit Lost: ${stops.get('1x_credit', 0):.2f}")
-            st.markdown(f"- 2x Credit Lost: ${stops.get('2x_credit', 0):.2f}")
-            st.markdown(f"- 50% Max Loss: ${stops.get('50_pct_max_loss', 0):.2f}")
+        if max_profit:
+            # Calculate debit to close at each stop loss percentage
+            # Stop loss = when you've lost X% of max profit potential
+            loss_50 = max_profit * 0.50  # Lost 50% of credit
+            loss_75 = max_profit * 0.75  # Lost 75% of credit
+            loss_90 = max_profit * 0.90  # Lost 90% of credit
+            
+            # Debit to close = original credit + loss
+            close_50 = (max_profit + loss_50) / 100  # Per share
+            close_75 = (max_profit + loss_75) / 100
+            close_90 = (max_profit + loss_90) / 100
+            
+            st.markdown(f"- 50% Loss: -${loss_50:.2f} | Close @ **${close_50:.2f}**")
+            st.markdown(f"- 75% Loss: -${loss_75:.2f} | Close @ ${close_75:.2f}")
+            st.markdown(f"- 90% Loss: -${loss_90:.2f} | Close @ ${close_90:.2f}")
     
     st.markdown("---")
     
