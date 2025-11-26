@@ -426,7 +426,7 @@ if ticker:
                                             analysis_price
                                         )
                                         prob_50 = calculate_prob_50_profit(selected_spread)
-                                        display_trade_management(trade_mgmt, prob_50)
+                                        display_trade_management(trade_mgmt, prob_50, selected_spread.max_profit)
                                     except Exception as e:
                                         st.info(f"Trade management suggestions unavailable")
                                 

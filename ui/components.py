@@ -595,16 +595,24 @@ def display_sector_performance(sector_data: Dict[str, Any]) -> None:
                     st.caption(f":red[{rs_market:.1f}% vs market]")
 
 
-def display_trade_management(trade_mgmt: Dict[str, Any], prob_50: float = None) -> None:
+def display_trade_management(trade_mgmt: Dict[str, Any], prob_50: float = None, max_profit: float = None) -> None:
     """Display trade management suggestions."""
     st.markdown("### 🎯 Trade Management")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("**Profit Targets**")
+        st.markdown("**Profit Targets (Close When)**")
         targets = trade_mgmt.get("profit_targets", {})
-        if targets:
+        if targets and max_profit:
+            # Calculate credit to keep at each level
+            credit_50 = max_profit - targets.get('50_pct', 0)
+            credit_75 = max_profit - targets.get('75_pct', 0)
+            credit_90 = max_profit - targets.get('90_pct', 0)
+            st.markdown(f"- 50% Profit: **${targets.get('50_pct', 0):.2f}** | Close @ ${credit_50:.2f} debit ✓")
+            st.markdown(f"- 75% Profit: ${targets.get('75_pct', 0):.2f} | Close @ ${credit_75:.2f} debit")
+            st.markdown(f"- 90% Profit: ${targets.get('90_pct', 0):.2f} | Close @ ${credit_90:.2f} debit")
+        elif targets:
             st.markdown(f"- 50% Profit: **${targets.get('50_pct', 0):.2f}** (Recommended)")
             st.markdown(f"- 75% Profit: ${targets.get('75_pct', 0):.2f}")
             st.markdown(f"- 90% Profit: ${targets.get('90_pct', 0):.2f}")
@@ -613,9 +621,17 @@ def display_trade_management(trade_mgmt: Dict[str, Any], prob_50: float = None) 
             st.markdown(f"📊 Prob. of 50% Profit: **{prob_50:.1f}%**")
     
     with col2:
-        st.markdown("**Stop Loss Levels**")
+        st.markdown("**Stop Loss Targets (Close When)**")
         stops = trade_mgmt.get("stop_loss_levels", {})
-        if stops:
+        if stops and max_profit:
+            # Calculate debit to close at each stop loss level
+            debit_1x = max_profit + stops.get('1x_credit', 0)
+            debit_2x = max_profit + stops.get('2x_credit', 0)
+            debit_50 = max_profit + stops.get('50_pct_max_loss', 0)
+            st.markdown(f"- 1x Credit Loss: -${stops.get('1x_credit', 0):.2f} | Close @ ${debit_1x:.2f} debit")
+            st.markdown(f"- 2x Credit Loss: -${stops.get('2x_credit', 0):.2f} | Close @ ${debit_2x:.2f} debit")
+            st.markdown(f"- 50% Max Loss: -${stops.get('50_pct_max_loss', 0):.2f} | Close @ ${debit_50:.2f} debit")
+        elif stops:
             st.markdown(f"- 1x Credit Lost: ${stops.get('1x_credit', 0):.2f}")
             st.markdown(f"- 2x Credit Lost: ${stops.get('2x_credit', 0):.2f}")
             st.markdown(f"- 50% Max Loss: ${stops.get('50_pct_max_loss', 0):.2f}")
