@@ -235,14 +235,15 @@ def display_spreads_table(spreads: List[SpreadType]) -> Optional[int]:
     
     df = pd.DataFrame(data)
     
-    # Remove columns with no data or all same values
+    # Remove columns with no data (but keep important columns like Expiration)
+    cols_to_keep = ['#', 'Expiration', 'Short Strike', 'Long Strike', 'Win Prob', 'ROC', 'Risk/Reward']
     cols_to_drop = []
     for col in df.columns:
+        # Skip important columns
+        if col in cols_to_keep:
+            continue
         # Check if column has all empty, null, or N/A values
         if df[col].isna().all() or (df[col] == '').all() or (df[col] == 'N/A').all():
-            cols_to_drop.append(col)
-        # Check if all values are the same (except for # column)
-        elif col != '#' and df[col].nunique() == 1 and len(df) > 1:
             cols_to_drop.append(col)
     
     df = df.drop(columns=cols_to_drop, errors='ignore')
