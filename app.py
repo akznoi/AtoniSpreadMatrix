@@ -296,6 +296,7 @@ if ticker:
                             "Expiration Date",
                             options=list(exp_options.keys()),
                             format_func=lambda x: exp_options[x],
+                            key="expiration_selector",
                         )
                     
                     with col2:
@@ -307,8 +308,11 @@ if ticker:
                     option_type = strat_config["option_type"]
                     strategy_type = strat_config["strategy_type"]
                     
-                    # Analyze spreads when button clicked or expiration changes
-                    if analyze_clicked or "last_analysis" not in st.session_state or st.session_state.get("last_strategy") != strategy:
+                    # Check if expiration date changed
+                    exp_changed = st.session_state.get("last_expiration") != selected_exp
+                    
+                    # Analyze spreads when button clicked, expiration changes, or strategy changes
+                    if analyze_clicked or "last_analysis" not in st.session_state or st.session_state.get("last_strategy") != strategy or exp_changed:
                         with st.spinner(f"Analyzing {strategy} opportunities..."):
                             # Fetch options chain
                             calls, puts = get_options_chain(ticker, selected_exp)
@@ -355,6 +359,7 @@ if ticker:
                                     "hist_vol": hist_vol,
                                 }
                                 st.session_state["last_strategy"] = strategy
+                                st.session_state["last_expiration"] = selected_exp
                     
                     # Display results
                     if "last_analysis" in st.session_state:
