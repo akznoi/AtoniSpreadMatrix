@@ -83,145 +83,46 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Initialize theme in session state
-if "dark_mode" not in st.session_state:
-    st.session_state.dark_mode = True  # Default to dark mode
-
-# Theme toggle function
-def toggle_theme():
-    st.session_state.dark_mode = not st.session_state.dark_mode
-
-# Get current theme
-dark_mode = st.session_state.dark_mode
-
-# Theme-specific CSS
-if dark_mode:
-    theme_css = """
-    <style>
-        /* Dark Theme */
-        .stApp {
-            background-color: #0e1117;
-        }
-        .main-header {
-            font-size: 7.5rem;
-            font-weight: 800;
-            color: #fafafa;
-            margin-bottom: 0;
-            letter-spacing: -2px;
-        }
-        .sub-header {
-            color: #888;
-            font-size: 1.1rem;
-            margin-top: 0;
-        }
-        .stMetric {
-            background-color: rgba(28, 131, 225, 0.15);
-            padding: 10px;
-            border-radius: 10px;
-        }
-        div[data-testid="stMetricValue"] {
-            font-size: 1.5rem;
-            color: #fafafa;
-        }
-        .strategy-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 16px;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        .bullish {
-            background-color: rgba(0, 200, 83, 0.2);
-            color: #00c853;
-        }
-        .bearish {
-            background-color: rgba(255, 82, 82, 0.2);
-            color: #ff5252;
-        }
-        /* Dark mode specific */
-        .stSelectbox label, .stSlider label, .stMultiSelect label, .stNumberInput label {
-            color: #fafafa !important;
-        }
-        .stMarkdown p, .stMarkdown li {
-            color: #fafafa;
-        }
-        section[data-testid="stSidebar"] {
-            background-color: #262730;
-        }
-        .theme-indicator {
-            color: #fafafa;
-            font-size: 0.9rem;
-        }
-    </style>
-    """
-else:
-    theme_css = """
-    <style>
-        /* Light Theme */
-        .stApp {
-            background-color: #ffffff;
-        }
-        .main-header {
-            font-size: 7.5rem;
-            font-weight: 800;
-            color: #1a1a1a;
-            margin-bottom: 0;
-            letter-spacing: -2px;
-        }
-        .sub-header {
-            color: #555;
-            font-size: 1.1rem;
-            margin-top: 0;
-        }
-        .stMetric {
-            background-color: rgba(28, 131, 225, 0.08);
-            padding: 10px;
-            border-radius: 10px;
-        }
-        div[data-testid="stMetricValue"] {
-            font-size: 1.5rem;
-            color: #262730;
-        }
-        .strategy-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 16px;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        .bullish {
-            background-color: rgba(0, 168, 68, 0.15);
-            color: #00a844;
-        }
-        .bearish {
-            background-color: rgba(211, 47, 47, 0.15);
-            color: #d32f2f;
-        }
-        /* Light mode specific */
-        .stSelectbox label, .stSlider label, .stMultiSelect label, .stNumberInput label {
-            color: #262730 !important;
-        }
-        .stMarkdown p, .stMarkdown li {
-            color: #262730;
-        }
-        section[data-testid="stSidebar"] {
-            background-color: #f0f2f6;
-        }
-        .theme-indicator {
-            color: #262730;
-            font-size: 0.9rem;
-        }
-        /* Fix text colors in light mode */
-        h1, h2, h3, h4, h5, h6, p, span, div {
-            color: #262730;
-        }
-        .stDataFrame {
-            color: #262730;
-        }
-    </style>
-    """
-
-st.markdown(theme_css, unsafe_allow_html=True)
+# Simple CSS styling (uses Streamlit's default light theme)
+st.markdown("""
+<style>
+    .main-header {
+        font-size: 7.5rem;
+        font-weight: 800;
+        color: #1a1a1a;
+        margin-bottom: 0;
+        letter-spacing: -2px;
+    }
+    .sub-header {
+        color: #555;
+        font-size: 1.1rem;
+        margin-top: 0;
+    }
+    .stMetric {
+        background-color: rgba(28, 131, 225, 0.1);
+        padding: 10px;
+        border-radius: 10px;
+    }
+    div[data-testid="stMetricValue"] {
+        font-size: 1.5rem;
+    }
+    .strategy-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    .bullish {
+        background-color: rgba(0, 200, 83, 0.2);
+        color: #00c853;
+    }
+    .bearish {
+        background-color: rgba(255, 82, 82, 0.2);
+        color: #ff5252;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # Header
 st.markdown('<p class="main-header">AtoniSpreadMatrix</p>', unsafe_allow_html=True)
@@ -230,14 +131,6 @@ st.markdown("---")
 
 # Sidebar inputs
 with st.sidebar:
-    # Theme toggle at the top
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.markdown(f"<span class='theme-indicator'>{'🌙 Dark' if dark_mode else '☀️ Light'} Mode</span>", unsafe_allow_html=True)
-    with col2:
-        st.button("🌙" if dark_mode else "☀️", on_click=toggle_theme, key="theme_toggle", help="Toggle dark/light mode")
-    
-    st.markdown("---")
     st.header("Strategy Parameters")
     
     # Ticker input
