@@ -127,7 +127,12 @@ st.markdown("""
 # Reduce top padding
 st.markdown('''
 <style>
-    .block-container { padding-top: 1rem !important; }
+    .block-container { padding-top: 2.5rem !important; }
+    header[data-testid="stHeader"] {
+        height: 2rem !important;
+        min-height: 2rem !important;
+        background-color: transparent !important;
+    }
 </style>
 <h1 style="font-size: 3.5rem; font-weight: 800; color: #1a1a1a; margin: 0; padding: 0; letter-spacing: -1px;">
     AtoniSpreadMatrix
