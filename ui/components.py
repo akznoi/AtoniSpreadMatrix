@@ -605,13 +605,14 @@ def display_trade_management(trade_mgmt: Dict[str, Any], prob_50: float = None, 
         st.markdown("**Profit Targets (Close When)**")
         targets = trade_mgmt.get("profit_targets", {})
         if targets and max_profit:
-            # Calculate credit to keep at each level
-            credit_50 = max_profit - targets.get('50_pct', 0)
-            credit_75 = max_profit - targets.get('75_pct', 0)
-            credit_90 = max_profit - targets.get('90_pct', 0)
-            st.markdown(f"- 50% Profit: **${targets.get('50_pct', 0):.2f}** | Close @ ${credit_50:.2f} debit ✓")
-            st.markdown(f"- 75% Profit: ${targets.get('75_pct', 0):.2f} | Close @ ${credit_75:.2f} debit")
-            st.markdown(f"- 90% Profit: ${targets.get('90_pct', 0):.2f} | Close @ ${credit_90:.2f} debit")
+            # Calculate debit to close at each profit level (per share)
+            # Debit to close = (max_profit - profit_target) / 100
+            close_50 = (max_profit - targets.get('50_pct', 0)) / 100
+            close_75 = (max_profit - targets.get('75_pct', 0)) / 100
+            close_90 = (max_profit - targets.get('90_pct', 0)) / 100
+            st.markdown(f"- 50% Profit: **${targets.get('50_pct', 0):.2f}** | Close @ **${close_50:.2f}** ✓")
+            st.markdown(f"- 75% Profit: ${targets.get('75_pct', 0):.2f} | Close @ ${close_75:.2f}")
+            st.markdown(f"- 90% Profit: ${targets.get('90_pct', 0):.2f} | Close @ ${close_90:.2f}")
         elif targets:
             st.markdown(f"- 50% Profit: **${targets.get('50_pct', 0):.2f}** (Recommended)")
             st.markdown(f"- 75% Profit: ${targets.get('75_pct', 0):.2f}")
