@@ -291,14 +291,25 @@ if ticker:
                     
                     with col1:
                         # Format dates for display
+                        exp_list = expirations[:12]  # Limit to next 12 expirations
                         exp_options = {
                             exp: f"{exp.strftime('%b %d, %Y')} ({(exp - date.today()).days} days)"
-                            for exp in expirations[:12]  # Limit to next 12 expirations
+                            for exp in exp_list
                         }
+                        
+                        # Find expiration closest to 30 days
+                        default_exp_idx = 0
+                        min_diff = float('inf')
+                        for i, exp in enumerate(exp_list):
+                            diff = abs((exp - date.today()).days - 30)
+                            if diff < min_diff:
+                                min_diff = diff
+                                default_exp_idx = i
                         
                         selected_exp = st.selectbox(
                             "Expiration Date",
                             options=list(exp_options.keys()),
+                            index=default_exp_idx,
                             format_func=lambda x: exp_options[x],
                             key="expiration_selector",
                         )
