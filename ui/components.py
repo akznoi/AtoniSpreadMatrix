@@ -235,6 +235,18 @@ def display_spreads_table(spreads: List[SpreadType]) -> Optional[int]:
     
     df = pd.DataFrame(data)
     
+    # Remove columns with no data or all same values
+    cols_to_drop = []
+    for col in df.columns:
+        # Check if column has all empty, null, or N/A values
+        if df[col].isna().all() or (df[col] == '').all() or (df[col] == 'N/A').all():
+            cols_to_drop.append(col)
+        # Check if all values are the same (except for # column)
+        elif col != '#' and df[col].nunique() == 1 and len(df) > 1:
+            cols_to_drop.append(col)
+    
+    df = df.drop(columns=cols_to_drop, errors='ignore')
+    
     # Display table
     st.dataframe(
         df,
