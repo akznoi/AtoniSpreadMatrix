@@ -128,7 +128,6 @@ st.markdown("""
 st.markdown('''
 <style>
     .block-container { padding-top: 1rem !important; }
-    header { visibility: hidden; }
 </style>
 <h1 style="font-size: 3.5rem; font-weight: 800; color: #1a1a1a; margin: 0; padding: 0; letter-spacing: -1px;">
     AtoniSpreadMatrix
