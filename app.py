@@ -103,11 +103,9 @@ if dark_mode:
             background-color: #0e1117;
         }
         .main-header {
-            font-size: 2.5rem;
+            font-size: 4.5rem;
             font-weight: 700;
-            background: linear-gradient(90deg, #00c853, #00bcd4);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #fafafa;
             margin-bottom: 0;
         }
         .sub-header {
@@ -163,11 +161,9 @@ else:
             background-color: #ffffff;
         }
         .main-header {
-            font-size: 2.5rem;
+            font-size: 4.5rem;
             font-weight: 700;
-            background: linear-gradient(90deg, #00a844, #0097a7);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #1a1a1a;
             margin-bottom: 0;
         }
         .sub-header {
@@ -226,7 +222,7 @@ else:
 st.markdown(theme_css, unsafe_allow_html=True)
 
 # Header
-st.markdown('<p class="main-header">📊 AtoniSpreadMatrix</p>', unsafe_allow_html=True)
+st.markdown('<p class="main-header">AtoniSpreadMatrix</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">Options Strategy Analyzer - Vertical Spreads</p>', unsafe_allow_html=True)
 st.markdown("---")
 
