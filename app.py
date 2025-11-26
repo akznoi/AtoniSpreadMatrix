@@ -565,7 +565,8 @@ st.markdown(
     <div style='text-align: center; color: #666; font-size: 0.8rem;'>
         <p>Data provided by Yahoo Finance. Options trading involves risk. 
         This tool is for educational purposes only.</p>
-        <p>Probability calculations are based on delta approximation and may not reflect actual outcomes. | <strong>Created by JPatino</strong></p>
+        <p>Probability calculations are based on delta approximation and may not reflect actual outcomes.</p>
+        <p><strong>Created by JPatino</strong></p>
     </div>
     """,
     unsafe_allow_html=True,
