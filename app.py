@@ -125,8 +125,14 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Header
-st.markdown('<p class="main-header">AtoniSpreadMatrix</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">Options Strategy Analyzer - Vertical Spreads</p>', unsafe_allow_html=True)
+st.markdown('''
+<h1 style="font-size: 5rem; font-weight: 800; color: #1a1a1a; margin-bottom: 0; letter-spacing: -2px;">
+    AtoniSpreadMatrix
+</h1>
+<p style="color: #555; font-size: 1.1rem; margin-top: 0;">
+    Options Strategy Analyzer - Vertical Spreads
+</p>
+''', unsafe_allow_html=True)
 st.markdown("---")
 
 # Sidebar inputs
