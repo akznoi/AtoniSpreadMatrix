@@ -217,6 +217,7 @@ def display_spreads_table(spreads: List[SpreadType]) -> Optional[int]:
         
         data.append({
             "#": i + 1,
+            "Expiration": spread.expiration_date.strftime("%b %d"),
             "Short Strike": f"${spread.short_strike:.2f}",
             "Long Strike": f"${spread.long_strike:.2f}",
             "Width": f"${spread.spread_width:.2f}",
