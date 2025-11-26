@@ -124,12 +124,16 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Header
+# Reduce top padding
 st.markdown('''
-<h1 style="font-size: 3.5rem; font-weight: 800; color: #1a1a1a; margin-bottom: 0; letter-spacing: -1px;">
+<style>
+    .block-container { padding-top: 1rem !important; }
+    header { visibility: hidden; }
+</style>
+<h1 style="font-size: 3.5rem; font-weight: 800; color: #1a1a1a; margin: 0; padding: 0; letter-spacing: -1px;">
     AtoniSpreadMatrix
 </h1>
-<p style="color: #555; font-size: 1.1rem; margin-top: 0;">
+<p style="color: #555; font-size: 1.1rem; margin-top: 0.25rem;">
     Options Strategy Analyzer - Vertical Spreads
 </p>
 ''', unsafe_allow_html=True)
