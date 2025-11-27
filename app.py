@@ -146,7 +146,7 @@ st.markdown('''
     AtoniSpreadMatrix
 </h1>
 <p style="color: #555; font-size: 1.1rem; margin-top: 0.25rem;">
-    Options Strategy Analyzer - Vertical Spreads
+    Options Spread Strategy Analyzer
 </p>
 <p style="color: #888; font-size: 0.9rem; font-style: italic; margin-top: 0.5rem; line-height: 1.6;">
     <strong>How to use:</strong> In the sidebar, enter a stock ticker symbol, select your spread strategy, 
