@@ -659,3 +659,104 @@ def display_trade_management(trade_mgmt: Dict[str, Any], prob_50: float = None, 
     if action:
         st.info(f"💡 **Recommendation**: {action}")
 
+
+def display_risk_alerts(
+    dte_check: Dict[str, Any],
+    iv_hv_comparison: Dict[str, Any],
+    earnings_warning: Dict[str, Any],
+    assignment_risk: Dict[str, Any] = None,
+    prob_touch: Dict[str, Any] = None,
+) -> None:
+    """
+    Display risk alerts and important indicators for options trading.
+    
+    Parameters:
+        dte_check: Optimal DTE check result
+        iv_hv_comparison: IV vs HV comparison result
+        earnings_warning: Earnings before expiration check
+        assignment_risk: Assignment risk check (optional, for selected spread)
+        prob_touch: Probability of touch (optional, for selected spread)
+    """
+    st.markdown("### ⚠️ Risk Alerts & Indicators")
+    
+    # Row 1: DTE and IV vs HV
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**Days to Expiration (DTE)**")
+        dte = dte_check.get("days_to_expiry", 0)
+        status = dte_check.get("status", "UNKNOWN")
+        message = dte_check.get("message", "")
+        
+        # Color code based on status
+        if status == "OPTIMAL":
+            st.success(f"**{dte} DTE** - {status}")
+        elif status in ["GOOD", "ACCEPTABLE"]:
+            st.info(f"**{dte} DTE** - {status}")
+        elif status in ["CAUTION", "FAR OUT"]:
+            st.warning(f"**{dte} DTE** - {status}")
+        else:
+            st.error(f"**{dte} DTE** - {status}")
+        
+        st.caption(message)
+    
+    with col2:
+        st.markdown("**IV vs Historical Volatility**")
+        iv_pct = iv_hv_comparison.get("iv_pct")
+        hv_pct = iv_hv_comparison.get("hv_pct")
+        ratio = iv_hv_comparison.get("iv_hv_ratio")
+        status = iv_hv_comparison.get("status")
+        emoji = iv_hv_comparison.get("emoji", "")
+        recommendation = iv_hv_comparison.get("recommendation", "")
+        
+        if iv_pct and hv_pct:
+            st.metric(
+                "IV / HV Ratio",
+                f"{ratio:.2f}x" if ratio else "N/A",
+                f"IV: {iv_pct:.1f}% | HV: {hv_pct:.1f}%"
+            )
+            st.caption(f"{emoji} {recommendation}")
+        else:
+            st.info("IV/HV data unavailable")
+    
+    # Row 2: Earnings Warning
+    if earnings_warning.get("earnings_before_exp"):
+        st.error(earnings_warning.get("warning", ""))
+    
+    # Row 3: Assignment Risk and Probability of Touch (only if spread selected)
+    if assignment_risk or prob_touch:
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if assignment_risk:
+                st.markdown("**Assignment Risk**")
+                risk_level = assignment_risk.get("risk_level", "UNKNOWN")
+                distance_pct = assignment_risk.get("distance_pct", 0)
+                
+                if risk_level == "HIGH":
+                    st.error(f"🚨 **{risk_level}** - Short strike is ITM!")
+                elif risk_level == "ELEVATED":
+                    st.warning(f"⚠️ **{risk_level}** - {distance_pct:.1f}% from ITM")
+                elif risk_level == "MODERATE":
+                    st.info(f"**{risk_level}** - {distance_pct:.1f}% from ITM")
+                else:
+                    st.success(f"✅ **{risk_level}** - {distance_pct:.1f}% from ITM")
+                
+                if assignment_risk.get("warning"):
+                    st.caption(assignment_risk.get("warning"))
+        
+        with col2:
+            if prob_touch:
+                st.markdown("**Probability of Touch**")
+                p_touch = prob_touch.get("probability_of_touch", 0)
+                p_itm = prob_touch.get("probability_itm", 0)
+                
+                if p_touch >= 70:
+                    st.error(f"🎯 **{p_touch:.0f}%** chance price touches short strike")
+                elif p_touch >= 50:
+                    st.warning(f"🎯 **{p_touch:.0f}%** chance price touches short strike")
+                else:
+                    st.info(f"🎯 **{p_touch:.0f}%** chance price touches short strike")
+                
+                st.caption(f"(Prob of expiring ITM: {p_itm:.0f}%)")
+

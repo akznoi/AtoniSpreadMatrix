@@ -45,6 +45,7 @@ from ui.components import (
     display_historical_earnings,
     display_sector_performance,
     display_trade_management,
+    display_risk_alerts,
 )
 from core.analytics import (
     calculate_iv_rank,
@@ -60,6 +61,11 @@ from core.analytics import (
     get_historical_earnings_moves,
     get_sector_performance,
     get_trade_management_suggestions,
+    check_earnings_before_expiration,
+    compare_iv_to_hv,
+    calculate_probability_of_touch,
+    check_assignment_risk,
+    check_optimal_dte,
 )
 from ui.charts import create_pl_chart, create_probability_chart, create_risk_reward_chart, create_price_chart
 from datetime import datetime
@@ -435,6 +441,26 @@ if ticker:
                         days_to_exp = (selected_exp - date.today()).days
                         st.metric("Days to Expiration", days_to_exp)
                     
+                    # Risk Alerts Section
+                    with st.expander("⚠️ **Risk Alerts & Indicators**", expanded=True):
+                        # Calculate risk indicators
+                        dte_check = check_optimal_dte(days_to_exp)
+                        iv_hv_comparison = compare_iv_to_hv(hist_vol, hist_vol)  # Using hist_vol for both initially
+                        
+                        # Get earnings info for warning
+                        earnings_data = get_earnings_info(ticker)
+                        earnings_warning = check_earnings_before_expiration(
+                            earnings_data.get("next_earnings_date"),
+                            selected_exp
+                        )
+                        
+                        # Display risk alerts (without spread-specific info yet)
+                        display_risk_alerts(
+                            dte_check=dte_check,
+                            iv_hv_comparison=iv_hv_comparison,
+                            earnings_warning=earnings_warning,
+                        )
+                    
                     # Get strategy configuration
                     strat_config = STRATEGIES[strategy]
                     option_type = strat_config["option_type"]
@@ -514,6 +540,48 @@ if ticker:
                                 
                                 # Display detailed view
                                 display_spread_details(selected_spread)
+                                
+                                st.markdown("---")
+                                
+                                # Spread-specific risk alerts
+                                with st.expander("🎯 **Spread Risk Analysis**", expanded=True):
+                                    col1, col2 = st.columns(2)
+                                    
+                                    with col1:
+                                        # Assignment risk
+                                        assignment_risk = check_assignment_risk(selected_spread, analysis_price)
+                                        st.markdown("**Assignment Risk**")
+                                        risk_level = assignment_risk.get("risk_level", "UNKNOWN")
+                                        distance_pct = assignment_risk.get("distance_pct", 0)
+                                        
+                                        if risk_level == "HIGH":
+                                            st.error(f"🚨 **{risk_level}** - Short strike is ITM!")
+                                        elif risk_level == "ELEVATED":
+                                            st.warning(f"⚠️ **{risk_level}** - {distance_pct:.1f}% from ITM")
+                                        elif risk_level == "MODERATE":
+                                            st.info(f"**{risk_level}** - {distance_pct:.1f}% from ITM")
+                                        else:
+                                            st.success(f"✅ **{risk_level}** - {distance_pct:.1f}% from ITM")
+                                        
+                                        if assignment_risk.get("warning"):
+                                            st.caption(assignment_risk.get("warning"))
+                                    
+                                    with col2:
+                                        # Probability of touch
+                                        prob_itm = 1 - selected_spread.probability_of_profit
+                                        prob_touch = calculate_probability_of_touch(prob_itm)
+                                        p_touch = prob_touch.get("probability_of_touch", 0)
+                                        p_itm_pct = prob_touch.get("probability_itm", 0)
+                                        
+                                        st.markdown("**Probability of Touch**")
+                                        if p_touch >= 70:
+                                            st.error(f"🎯 **{p_touch:.0f}%** chance price touches short strike")
+                                        elif p_touch >= 50:
+                                            st.warning(f"🎯 **{p_touch:.0f}%** chance price touches short strike")
+                                        else:
+                                            st.info(f"🎯 **{p_touch:.0f}%** chance price touches short strike")
+                                        
+                                        st.caption(f"Prob of expiring ITM: {p_itm_pct:.0f}%")
                                 
                                 st.markdown("---")
                                 

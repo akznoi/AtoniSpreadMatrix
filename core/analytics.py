@@ -755,3 +755,227 @@ def get_trade_management_suggestions(spread, current_price: float) -> Dict[str, 
     except Exception as e:
         return {"error": str(e)}
 
+
+def check_earnings_before_expiration(earnings_date_str: str, expiration_date: date) -> Dict[str, Any]:
+    """
+    Check if earnings fall before option expiration.
+    
+    Parameters:
+        earnings_date_str: Earnings date string (e.g., "Dec 15, 2024")
+        expiration_date: Option expiration date
+    
+    Returns:
+        Dictionary with warning status and details
+    """
+    try:
+        if not earnings_date_str:
+            return {"earnings_before_exp": False, "warning": None}
+        
+        # Parse earnings date
+        earnings_date = datetime.strptime(earnings_date_str, "%b %d, %Y").date()
+        
+        if earnings_date < expiration_date:
+            days_until_earnings = (earnings_date - date.today()).days
+            return {
+                "earnings_before_exp": True,
+                "earnings_date": earnings_date_str,
+                "days_until_earnings": days_until_earnings,
+                "warning": f"⚠️ EARNINGS on {earnings_date_str} (before expiration!) - Expect IV crush after earnings.",
+            }
+        
+        return {"earnings_before_exp": False, "warning": None}
+    except Exception as e:
+        return {"earnings_before_exp": False, "warning": None, "error": str(e)}
+
+
+def compare_iv_to_hv(current_iv: float, historical_vol: float) -> Dict[str, Any]:
+    """
+    Compare implied volatility to historical volatility.
+    
+    Parameters:
+        current_iv: Current implied volatility (as decimal)
+        historical_vol: Historical volatility (as decimal)
+    
+    Returns:
+        Dictionary with comparison and recommendation
+    """
+    try:
+        if current_iv <= 0 or historical_vol <= 0:
+            return {"iv_hv_ratio": None, "status": None, "recommendation": None}
+        
+        iv_hv_ratio = current_iv / historical_vol
+        iv_pct = current_iv * 100
+        hv_pct = historical_vol * 100
+        
+        if iv_hv_ratio > 1.3:
+            status = "IV Much Higher"
+            recommendation = "Options are EXPENSIVE - good for SELLING (credit spreads)"
+            emoji = "🔴"
+        elif iv_hv_ratio > 1.1:
+            status = "IV Slightly Higher"
+            recommendation = "Options slightly overpriced - favor selling"
+            emoji = "🟡"
+        elif iv_hv_ratio > 0.9:
+            status = "IV ≈ HV"
+            recommendation = "Options fairly priced"
+            emoji = "⚪"
+        elif iv_hv_ratio > 0.7:
+            status = "IV Slightly Lower"
+            recommendation = "Options slightly underpriced - favor buying"
+            emoji = "🟡"
+        else:
+            status = "IV Much Lower"
+            recommendation = "Options are CHEAP - good for BUYING (debit spreads)"
+            emoji = "🟢"
+        
+        return {
+            "iv_pct": round(iv_pct, 1),
+            "hv_pct": round(hv_pct, 1),
+            "iv_hv_ratio": round(iv_hv_ratio, 2),
+            "status": status,
+            "recommendation": recommendation,
+            "emoji": emoji,
+        }
+    except Exception as e:
+        return {"iv_hv_ratio": None, "status": None, "recommendation": None, "error": str(e)}
+
+
+def calculate_probability_of_touch(probability_itm: float) -> Dict[str, Any]:
+    """
+    Calculate probability of stock touching the strike price.
+    
+    Probability of touch ≈ 2 × Probability of expiring ITM
+    
+    Parameters:
+        probability_itm: Probability of expiring in the money (0-1)
+    
+    Returns:
+        Dictionary with probability of touch
+    """
+    try:
+        # Probability of touch is approximately 2x the probability of expiring ITM
+        # This is because price can touch the strike and then move away
+        prob_touch = min(probability_itm * 2, 1.0)
+        
+        return {
+            "probability_of_touch": round(prob_touch * 100, 1),
+            "probability_itm": round(probability_itm * 100, 1),
+            "interpretation": f"~{round(prob_touch * 100)}% chance price will touch your short strike during the trade",
+        }
+    except Exception as e:
+        return {"probability_of_touch": None, "error": str(e)}
+
+
+def check_assignment_risk(spread, current_price: float) -> Dict[str, Any]:
+    """
+    Check assignment risk for short options.
+    
+    Parameters:
+        spread: VerticalSpread object
+        current_price: Current stock price
+    
+    Returns:
+        Dictionary with assignment risk status
+    """
+    try:
+        short_strike = spread.short_strike
+        option_type = spread.option_type
+        time_to_expiry = spread.time_to_expiry
+        
+        # Calculate how close to ITM
+        if option_type == "put":
+            distance_to_itm = current_price - short_strike
+            itm = short_strike > current_price
+        else:
+            distance_to_itm = short_strike - current_price
+            itm = short_strike < current_price
+        
+        distance_pct = abs(distance_to_itm) / current_price * 100
+        
+        # Determine risk level
+        if itm:
+            risk_level = "HIGH"
+            warning = f"⚠️ Short {option_type} is ITM! High assignment risk."
+            color = "red"
+        elif distance_pct < 1:
+            risk_level = "ELEVATED"
+            warning = f"Short strike within 1% of current price - monitor closely"
+            color = "orange"
+        elif distance_pct < 3:
+            risk_level = "MODERATE"
+            warning = f"Short strike within 3% - assignment possible if price moves"
+            color = "yellow"
+        else:
+            risk_level = "LOW"
+            warning = None
+            color = "green"
+        
+        # Early assignment is more likely:
+        # 1. For ITM options
+        # 2. Near ex-dividend date (for calls)
+        # 3. Near expiration
+        
+        early_assignment_note = None
+        if time_to_expiry < 7/365 and itm:
+            early_assignment_note = "Very close to expiration - early assignment likely for ITM options"
+        
+        return {
+            "risk_level": risk_level,
+            "warning": warning,
+            "color": color,
+            "short_strike": short_strike,
+            "distance_to_itm": round(distance_to_itm, 2),
+            "distance_pct": round(distance_pct, 2),
+            "is_itm": itm,
+            "early_assignment_note": early_assignment_note,
+        }
+    except Exception as e:
+        return {"risk_level": "UNKNOWN", "warning": None, "error": str(e)}
+
+
+def check_optimal_dte(days_to_expiry: int) -> Dict[str, Any]:
+    """
+    Check if days to expiration is in the optimal range for credit spreads.
+    
+    Parameters:
+        days_to_expiry: Days until expiration
+    
+    Returns:
+        Dictionary with DTE analysis
+    """
+    try:
+        if 30 <= days_to_expiry <= 45:
+            status = "OPTIMAL"
+            message = "✅ Sweet spot! Theta decay accelerates, good premium, manageable gamma."
+            color = "green"
+        elif 45 < days_to_expiry <= 60:
+            status = "GOOD"
+            message = "Good DTE - slightly less theta decay but more time to be right"
+            color = "lightgreen"
+        elif 21 <= days_to_expiry < 30:
+            status = "ACCEPTABLE"
+            message = "Acceptable - faster theta decay but less time to adjust"
+            color = "yellow"
+        elif 7 <= days_to_expiry < 21:
+            status = "CAUTION"
+            message = "⚠️ High gamma risk - price moves have larger impact"
+            color = "orange"
+        elif days_to_expiry < 7:
+            status = "RISKY"
+            message = "🚨 Very high gamma - small moves cause large P/L swings"
+            color = "red"
+        else:
+            status = "FAR OUT"
+            message = "Long dated - lower theta decay, more uncertainty"
+            color = "lightblue"
+        
+        return {
+            "days_to_expiry": days_to_expiry,
+            "status": status,
+            "message": message,
+            "color": color,
+            "is_optimal": 30 <= days_to_expiry <= 45,
+        }
+    except Exception as e:
+        return {"status": "UNKNOWN", "message": None, "error": str(e)}
+
