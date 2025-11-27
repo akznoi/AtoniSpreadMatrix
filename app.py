@@ -358,6 +358,38 @@ if ticker:
             
             st.markdown("---")
             
+            # Expected Move and Liquidity Analysis (before Option Trade)
+            with st.expander("🎯 **Expected Move & Liquidity**", expanded=True):
+                col_em, col_liq = st.columns(2)
+                
+                with col_em:
+                    try:
+                        exp_move_data = calculate_expected_move(
+                            current_price=current_price,
+                            iv=hist_vol,
+                            days_to_expiry=30,  # Default 30 days
+                        )
+                        display_expected_move(exp_move_data, current_price)
+                    except:
+                        st.info("Expected move data unavailable")
+                
+                with col_liq:
+                    try:
+                        # Get options chain for liquidity analysis
+                        temp_exps = get_expiration_dates(ticker)
+                        if temp_exps:
+                            # Find closest to 30 days
+                            closest_exp = min(temp_exps[:6], key=lambda x: abs((x - date.today()).days - 30))
+                            temp_calls, temp_puts = get_options_chain(ticker, closest_exp)
+                            liq_data = calculate_liquidity_score(temp_puts if temp_puts is not None and not temp_puts.empty else temp_calls)
+                            display_liquidity_analysis(liq_data)
+                        else:
+                            st.info("Liquidity data unavailable")
+                    except:
+                        st.info("Liquidity data unavailable")
+            
+            st.markdown("---")
+            
             # Fetch expiration dates
             try:
                 expirations = get_expiration_dates(ticker)
@@ -482,38 +514,6 @@ if ticker:
                                 display_spread_details(selected_spread)
                                 
                                 st.markdown("---")
-                                
-                                # Expected Move and Liquidity Analysis
-                                with st.expander("🎯 **Expected Move & Liquidity**", expanded=True):
-                                    col_em, col_liq = st.columns(2)
-                                    
-                                    with col_em:
-                                        # Calculate expected move based on ATM IV
-                                        try:
-                                            analysis_data = st.session_state.get("last_analysis", {})
-                                            stored_vol = analysis_data.get("hist_vol", hist_vol)
-                                            stored_days = analysis_data.get("days_to_exp", days_to_exp)
-                                            exp_move_data = calculate_expected_move(
-                                                current_price=analysis_price,
-                                                iv=stored_vol,
-                                                days_to_expiry=stored_days,
-                                            )
-                                            display_expected_move(exp_move_data, analysis_price)
-                                        except:
-                                            st.info("Expected move data unavailable")
-                                    
-                                    with col_liq:
-                                        # Calculate liquidity for selected options
-                                        try:
-                                            analysis_data = st.session_state.get("last_analysis", {})
-                                            stored_options = analysis_data.get("options_df")
-                                            if stored_options is not None:
-                                                liq_data = calculate_liquidity_score(stored_options)
-                                                display_liquidity_analysis(liq_data)
-                                            else:
-                                                st.info("Liquidity data unavailable")
-                                        except:
-                                            st.info("Liquidity data unavailable")
                                 
                                 # Trade Management Section
                                 with st.expander("🎯 **Trade Management Suggestions**", expanded=True):
