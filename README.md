@@ -1,14 +1,28 @@
 # AtoniSpreadMatrix - Options Strategy Analyzer
 
-A comprehensive Python web application for analyzing vertical spread options strategies with advanced analytics.
+A comprehensive Python web application for analyzing options spread strategies with advanced analytics and risk management tools.
+
+**Live Demo**: [atonispreadmatrix.streamlit.app](https://atonispreadmatrix.streamlit.app/)
 
 ## Features
 
 ### 📊 Strategy Analysis
-- **Put Credit Spread** (Bullish): Sell higher strike put, buy lower strike put
-- **Put Debit Spread** (Bearish): Buy higher strike put, sell lower strike put
-- **Call Credit Spread** (Bearish): Sell lower strike call, buy higher strike call
-- **Call Debit Spread** (Bullish): Buy lower strike call, sell higher strike call
+
+| Strategy | Outlook | Description |
+|----------|---------|-------------|
+| **Put Credit Spread** | Bullish | Sell higher strike put, buy lower strike put |
+| **Put Debit Spread** | Bearish | Buy higher strike put, sell lower strike put |
+| **Call Credit Spread** | Bearish | Sell lower strike call, buy higher strike call |
+| **Call Debit Spread** | Bullish | Buy lower strike call, sell higher strike call |
+| **Iron Condor** | Neutral | Put credit spread + Call credit spread. Profit when stock stays in range. |
+| **Iron Butterfly** | Neutral | Short ATM straddle + long OTM wings. Higher premium, narrower profit zone. |
+
+### ⚠️ Risk Alerts & Indicators
+- **Optimal DTE Check**: Highlights if expiration is in the 30-45 day sweet spot
+- **IV vs HV Comparison**: Shows if options are expensive (sell) or cheap (buy)
+- **Earnings Warning**: Alerts if earnings fall before expiration (IV crush risk)
+- **Assignment Risk**: Monitors how close short strike is to ITM
+- **Probability of Touch**: ~2x probability of ITM - likelihood price touches short strike
 
 ### 📈 Advanced Analytics
 - **IV Rank & IV Percentile**: Determine if options are expensive or cheap
@@ -23,8 +37,8 @@ A comprehensive Python web application for analyzing vertical spread options str
 
 ### 🎯 Trade Management
 - **Probability of 50% Profit**: More realistic profit targets
-- **Profit Targets**: 50%, 75%, 90% levels
-- **Stop Loss Suggestions**: 1x, 2x credit, 50% max loss
+- **Profit Targets**: 50%, 75%, 90% levels with close prices
+- **Stop Loss Levels**: 50%, 75%, 90% loss with close prices
 - **Warning/Danger Price Alerts**: Know when to act
 - **Roll Recommendations**: When to adjust positions
 
@@ -39,6 +53,7 @@ A comprehensive Python web application for analyzing vertical spread options str
 - **Interactive P/L Charts**: Visualize profit/loss at expiration
 - **Risk/Reward Comparison**: Compare spreads side-by-side
 - **Real-Time Data**: Live market data via Yahoo Finance
+- **All Strike Combinations**: Shows all available spreads, not just preset widths
 
 ## Quick Start
 
@@ -62,13 +77,13 @@ Opens your browser to `http://localhost:8501`
 ## How to Use
 
 1. **Enter a Ticker**: Type a stock symbol (e.g., AAPL, SPY, TSLA)
-2. **Select Strategy**: Choose from Put/Call Credit/Debit spreads
+2. **Select Strategy**: Choose from vertical spreads or Iron Condor/Butterfly
 3. **Set Win Probability**: Use the slider (50-90%)
-4. **Choose Expiration**: Select from available dates
-5. **Select Spread Width**: Pick widths to analyze ($2.5, $5, $10, etc.)
-6. **Click Analyze**: View recommended spreads
-7. **Review Analytics**: Check IV, earnings, technicals before trading
-8. **Select a Spread**: See detailed P/L chart and trade management tips
+4. **Set Min Open Interest**: Filter for liquidity (default: 1)
+5. **Click Analyze**: Load the data
+6. **Choose Expiration**: Select from available dates (defaults to ~30 days)
+7. **Review Risk Alerts**: Check DTE, IV vs HV, earnings warnings
+8. **Select a Spread**: See detailed P/L chart, Greeks, and trade management tips
 
 ## Understanding the Output
 
@@ -82,6 +97,17 @@ Opens your browser to `http://localhost:8501`
 | **Breakeven** | Stock price where P/L = $0 |
 | **Win Probability** | Probability of profit (delta-based) |
 | **ROC** | Return on Capital = Max profit ÷ Capital required |
+| **Risk/Reward** | Max Loss ÷ Max Profit (lower is better) |
+
+### Risk Alert Indicators
+
+| Indicator | What It Tells You |
+|-----------|-------------------|
+| **DTE: OPTIMAL** | 30-45 days - ideal theta decay |
+| **DTE: CAUTION** | <21 days - high gamma risk |
+| **IV > HV** | Options expensive - good for selling |
+| **IV < HV** | Options cheap - good for buying |
+| **Earnings Before Exp** | IV will crush after earnings! |
 
 ### IV Analysis
 
@@ -114,6 +140,10 @@ Opens your browser to `http://localhost:8501`
 ## Disclaimer
 
 ⚠️ This tool is for **educational purposes only**. Options trading involves significant risk of loss. The probability calculations are approximations based on delta and may not reflect actual market outcomes. Always do your own research and consider consulting a financial advisor before trading options.
+
+---
+
+**Created by JPatino**
 
 ## License
 
