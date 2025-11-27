@@ -146,6 +146,11 @@ st.markdown('''
     Click <strong>Analyze</strong> to load data. Then select your preferred expiration date to view 
     all possible spread combinations matching your criteria.
 </p>
+<p style="color: #999; font-size: 0.8rem; margin-top: 0.5rem;">
+    <strong>Disclaimer:</strong> Data provided by Yahoo Finance. Options trading involves risk. 
+    This tool is for educational purposes only. Probability calculations are based on delta approximation 
+    and may not reflect actual outcomes.
+</p>
 ''', unsafe_allow_html=True)
 st.markdown("---")
 
