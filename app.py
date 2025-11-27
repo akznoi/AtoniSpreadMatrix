@@ -134,7 +134,7 @@ st.markdown('''
         background-color: transparent !important;
     }
 </style>
-<h1 style="font-size: 3.5rem; font-weight: 800; color: #1a1a1a; margin: 0; padding: 0; letter-spacing: -1px;">
+<h1 style="font-size: 2.45rem; font-weight: 800; color: #1a1a1a; margin: 0; padding: 0; letter-spacing: -1px;">
     AtoniSpreadMatrix
 </h1>
 <p style="color: #555; font-size: 1.1rem; margin-top: 0.25rem;">
@@ -365,6 +365,9 @@ if ticker:
                 if not expirations:
                     display_error(f"No options available for {ticker}")
                 else:
+                    # Option Trade header
+                    st.markdown("### Option Trade")
+                    
                     # Expiration date selector
                     col1, col2 = st.columns([2, 1])
                     
