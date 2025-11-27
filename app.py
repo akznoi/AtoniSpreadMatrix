@@ -157,7 +157,7 @@ st.markdown('''
 <p style="color: #999; font-size: 0.8rem; margin-top: 0.5rem;">
     <strong>Disclaimer:</strong> Data provided by Yahoo Finance. Options trading involves risk. 
     This tool is for educational purposes only. Probability calculations are based on delta approximation 
-    and may not reflect actual outcomes.
+    and may not reflect actual outcomes. Always do your own research and consider paper trading and consulting a financial advisor before trading options.
 </p>
 ''', unsafe_allow_html=True)
 st.markdown("---")
@@ -685,7 +685,8 @@ st.markdown(
     <div style='text-align: center; color: #666; font-size: 0.8rem;'>
         <p>Data provided by Yahoo Finance. Options trading involves risk. 
         This tool is for educational purposes only.</p>
-        <p>Probability calculations are based on delta approximation and may not reflect actual outcomes.</p>
+        <p>Probability calculations are based on delta approximation and may not reflect actual outcomes.
+        Always do your own research and consider paper trading and consulting a financial advisor before trading options.</p>
         <p><strong>Created by JPatino</strong></p>
     </div>
     """,

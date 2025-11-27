@@ -139,7 +139,7 @@ Opens your browser to `http://localhost:8501`
 
 ## Disclaimer
 
-⚠️ This tool is for **educational purposes only**. Options trading involves significant risk of loss. The probability calculations are approximations based on delta and may not reflect actual market outcomes. Always do your own research and consider consulting a financial advisor before trading options.
+⚠️ This tool is for **educational purposes only**. Options trading involves significant risk of loss. The probability calculations are approximations based on delta and may not reflect actual market outcomes. Always do your own research and consider paper trading and consulting a financial advisor before trading options.
 
 ---
 
