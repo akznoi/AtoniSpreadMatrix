@@ -212,9 +212,9 @@ with st.sidebar:
         "Min Open Interest",
         min_value=0,
         max_value=1000,
-        value=10,
-        step=10,
-        help="Minimum open interest for options to consider",
+        value=1,
+        step=1,
+        help="Minimum open interest for options to consider (0 = show all)",
     )
     
     st.markdown("---")
