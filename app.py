@@ -276,6 +276,85 @@ if ticker:
                     # Row 4: Sector Performance
                     sector_data = get_sector_performance(ticker)
                     display_sector_performance(sector_data)
+                    
+                    st.markdown("---")
+                    
+                    # Row 5: Market Analysis (Trend + News)
+                    st.markdown("#### 📊 Market Analysis")
+                    
+                    try:
+                        # Fetch trend data
+                        trend_info = get_trend_analysis(ticker)
+                        price_history = get_price_history(ticker, period="3mo")
+                        
+                        # Display trend summary
+                        col_t1, col_t2, col_t3, col_t4 = st.columns(4)
+                        
+                        trend = trend_info.get("trend", "Unknown")
+                        if "Bullish" in trend:
+                            trend_icon = "📈"
+                        elif "Bearish" in trend:
+                            trend_icon = "📉"
+                        else:
+                            trend_icon = "➡️"
+                        
+                        with col_t1:
+                            st.metric("Trend", f"{trend_icon} {trend}")
+                        
+                        with col_t2:
+                            change_1w = trend_info.get("change_1w", 0)
+                            st.metric("1-Week Change", f"{change_1w:+.2f}%", delta=f"{change_1w:.2f}%")
+                        
+                        with col_t3:
+                            change_1m = trend_info.get("change_1m", 0)
+                            st.metric("1-Month Change", f"{change_1m:+.2f}%", delta=f"{change_1m:.2f}%")
+                        
+                        with col_t4:
+                            sma_20 = trend_info.get("sma_20", 0)
+                            st.metric("20-Day SMA", f"${sma_20:.2f}")
+                        
+                        st.caption(trend_info.get("description", ""))
+                        
+                        # Price chart
+                        if not price_history.empty:
+                            st.plotly_chart(
+                                create_price_chart(price_history, ticker, trend_info),
+                                use_container_width=True,
+                            )
+                        
+                        # News section
+                        st.markdown("##### 📰 Latest News")
+                        
+                        news_items = get_stock_news(ticker, max_items=10)
+                        
+                        if news_items:
+                            for i, news in enumerate(news_items):
+                                date_val = news.get("date", "")
+                                news_date = ""
+                                if date_val:
+                                    try:
+                                        if isinstance(date_val, str):
+                                            dt = datetime.fromisoformat(date_val.replace("Z", "+00:00"))
+                                            news_date = dt.strftime("%b %d, %Y")
+                                        elif isinstance(date_val, (int, float)):
+                                            news_date = datetime.fromtimestamp(date_val).strftime("%b %d, %Y")
+                                    except:
+                                        news_date = ""
+                                
+                                publisher = news.get("publisher", "")
+                                title = news.get("title", "")
+                                link = news.get("link", "#")
+                                
+                                st.markdown(
+                                    f"**{i+1}.** [{title}]({link})  \n"
+                                    f"<span style='color: #888; font-size: 0.85rem;'>{publisher} • {news_date}</span>",
+                                    unsafe_allow_html=True,
+                                )
+                        else:
+                            st.info("No recent news available for this ticker.")
+                    
+                    except Exception as e:
+                        st.warning(f"Unable to load market analysis: {str(e)}")
             
             st.markdown("---")
             
@@ -476,107 +555,6 @@ if ticker:
             display_error(f"An unexpected error occurred: {str(e)}")
 else:
     st.info("👈 Enter a stock ticker in the sidebar to get started")
-
-# Trend Analysis and News Section
-if ticker and is_valid:
-    st.markdown("---")
-    st.markdown("## 📊 Market Analysis")
-    
-    try:
-        # Fetch trend data
-        trend_info = get_trend_analysis(ticker)
-        price_history = get_price_history(ticker, period="3mo")
-        
-        # Display trend summary
-        col1, col2, col3, col4 = st.columns(4)
-        
-        trend = trend_info.get("trend", "Unknown")
-        if "Bullish" in trend:
-            trend_color = "green"
-            trend_icon = "📈"
-        elif "Bearish" in trend:
-            trend_color = "red"
-            trend_icon = "📉"
-        else:
-            trend_color = "orange"
-            trend_icon = "➡️"
-        
-        with col1:
-            st.metric(
-                "Trend",
-                f"{trend_icon} {trend}",
-            )
-        
-        with col2:
-            change_1w = trend_info.get("change_1w", 0)
-            st.metric(
-                "1-Week Change",
-                f"{change_1w:+.2f}%",
-                delta=f"{change_1w:.2f}%",
-            )
-        
-        with col3:
-            change_1m = trend_info.get("change_1m", 0)
-            st.metric(
-                "1-Month Change",
-                f"{change_1m:+.2f}%",
-                delta=f"{change_1m:.2f}%",
-            )
-        
-        with col4:
-            sma_20 = trend_info.get("sma_20", 0)
-            st.metric(
-                "20-Day SMA",
-                f"${sma_20:.2f}",
-            )
-        
-        # Display trend description
-        st.caption(trend_info.get("description", ""))
-        
-        # Price chart
-        if not price_history.empty:
-            st.plotly_chart(
-                create_price_chart(price_history, ticker, trend_info),
-                use_container_width=True,
-            )
-        
-        # News section
-        st.markdown("### 📰 Latest News")
-        
-        news_items = get_stock_news(ticker, max_items=10)
-        
-        if news_items:
-            for i, news in enumerate(news_items):
-                # Format date
-                date_val = news.get("date", "")
-                news_date = ""
-                if date_val:
-                    try:
-                        if isinstance(date_val, str):
-                            # ISO format string like "2025-11-26T19:24:37Z"
-                            dt = datetime.fromisoformat(date_val.replace("Z", "+00:00"))
-                            news_date = dt.strftime("%b %d, %Y")
-                        elif isinstance(date_val, (int, float)):
-                            # Unix timestamp
-                            news_date = datetime.fromtimestamp(date_val).strftime("%b %d, %Y")
-                    except:
-                        news_date = ""
-                
-                publisher = news.get("publisher", "")
-                title = news.get("title", "")
-                link = news.get("link", "#")
-                
-                # Display news item
-                st.markdown(
-                    f"**{i+1}.** [{title}]({link})  \n"
-                    f"<span style='color: #888; font-size: 0.85rem;'>{publisher} • {news_date}</span>",
-                    unsafe_allow_html=True,
-                )
-        else:
-            st.info("No recent news available for this ticker.")
-    
-    except Exception as e:
-        st.warning(f"Unable to load market analysis: {str(e)}")
 
 # Footer
 st.markdown("---")
