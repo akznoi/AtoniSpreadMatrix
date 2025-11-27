@@ -43,62 +43,129 @@ def display_spread_details(spread: SpreadType) -> None:
     Display detailed information about a selected spread.
     
     Parameters:
-        spread: BullPutSpread object
+        spread: Spread object (VerticalSpread, IronCondor, or IronButterfly)
     """
     st.markdown(f"### Selected Spread Details")
     
-    # Get option type for display
-    if hasattr(spread, 'option_type'):
-        option_type = spread.option_type.capitalize()
-        short_leg = spread.short_leg
-        long_leg = spread.long_leg
+    # Check if this is a multi-leg strategy
+    is_iron_condor = hasattr(spread, 'short_put_strike')
+    is_iron_butterfly = hasattr(spread, 'center_strike')
+    
+    if is_iron_condor:
+        # Iron Condor display
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("#### Position (4 Legs)")
+            st.markdown(f"""
+            **Put Credit Spread:**
+            - Sell Put @ ${spread.short_put_strike:.2f}
+            - Buy Put @ ${spread.long_put_strike:.2f}
+            
+            **Call Credit Spread:**
+            - Sell Call @ ${spread.short_call_strike:.2f}
+            - Buy Call @ ${spread.long_call_strike:.2f}
+            
+            **Expiration**: {spread.expiration_date.strftime('%B %d, %Y')}
+            """)
+        
+        with col2:
+            st.markdown("#### Key Metrics")
+            st.markdown(f"""
+            - **Total Credit**: ${spread.net_premium:.2f} per share (${spread.net_premium * 100:.2f} per contract)
+            - **Profit Range**: ${spread.breakeven_lower:.2f} - ${spread.breakeven_upper:.2f}
+            - **Width**: ${spread.profit_range:.2f} 
+            """)
+    
+    elif is_iron_butterfly:
+        # Iron Butterfly display
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("#### Position (4 Legs)")
+            st.markdown(f"""
+            **ATM Short Straddle:**
+            - Sell Put @ ${spread.center_strike:.2f}
+            - Sell Call @ ${spread.center_strike:.2f}
+            
+            **Wings (Protection):**
+            - Buy Put @ ${spread.long_put_strike:.2f}
+            - Buy Call @ ${spread.long_call_strike:.2f}
+            
+            **Expiration**: {spread.expiration_date.strftime('%B %d, %Y')}
+            """)
+        
+        with col2:
+            st.markdown("#### Key Metrics")
+            st.markdown(f"""
+            - **Total Credit**: ${spread.net_premium:.2f} per share (${spread.net_premium * 100:.2f} per contract)
+            - **Profit Range**: ${spread.breakeven_lower:.2f} - ${spread.breakeven_upper:.2f}
+            - **Wing Width**: ${spread.wing_width:.2f}
+            """)
+    
     else:
-        option_type = "Put"
-        short_leg = spread.short_put
-        long_leg = spread.long_put
-    
-    # Position details
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("#### Position")
-        st.markdown(f"""
-        - **Sell {option_type}** @ ${spread.short_strike:.2f} for ${short_leg.premium:.2f}
-        - **Buy {option_type}** @ ${spread.long_strike:.2f} for ${long_leg.premium:.2f}
-        - **Expiration**: {spread.expiration_date.strftime('%B %d, %Y')}
-        """)
-    
-    with col2:
-        st.markdown("#### Key Metrics")
-        # Handle both credit and debit spreads
-        if hasattr(spread, 'net_premium'):
-            net_prem = spread.net_premium
-            prem_label = "Net Credit" if spread.is_credit else "Net Debit"
+        # Regular vertical spread display
+        if hasattr(spread, 'option_type'):
+            option_type = spread.option_type.capitalize()
+            short_leg = spread.short_leg
+            long_leg = spread.long_leg
         else:
-            net_prem = spread.net_credit
-            prem_label = "Net Credit"
-        st.markdown(f"""
-        - **{prem_label}**: ${abs(net_prem):.2f} per share (${abs(net_prem) * 100:.2f} per contract)
-        - **Spread Width**: ${spread.spread_width:.2f}
-        - **Breakeven**: ${spread.breakeven:.2f}
-        """)
+            option_type = "Put"
+            short_leg = spread.short_put
+            long_leg = spread.long_put
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("#### Position")
+            st.markdown(f"""
+            - **Sell {option_type}** @ ${spread.short_strike:.2f} for ${short_leg.premium:.2f}
+            - **Buy {option_type}** @ ${spread.long_strike:.2f} for ${long_leg.premium:.2f}
+            - **Expiration**: {spread.expiration_date.strftime('%B %d, %Y')}
+            """)
+        
+        with col2:
+            st.markdown("#### Key Metrics")
+            if hasattr(spread, 'net_premium'):
+                net_prem = spread.net_premium
+                prem_label = "Net Credit" if spread.is_credit else "Net Debit"
+            else:
+                net_prem = spread.net_credit
+                prem_label = "Net Credit"
+            st.markdown(f"""
+            - **{prem_label}**: ${abs(net_prem):.2f} per share (${abs(net_prem) * 100:.2f} per contract)
+            - **Spread Width**: ${spread.spread_width:.2f}
+            - **Breakeven**: ${spread.breakeven:.2f}
+            """)
     
     # P/L and Risk metrics
     st.markdown("---")
+    
+    # Adjust help text based on strategy type
+    is_iron_condor = hasattr(spread, 'short_put_strike')
+    is_iron_butterfly = hasattr(spread, 'center_strike')
+    
+    if is_iron_condor or is_iron_butterfly:
+        profit_help = "Maximum profit if stock stays within breakeven range"
+        loss_help = "Maximum loss if stock moves beyond wings"
+    else:
+        profit_help = "Maximum profit if stock stays above short strike"
+        loss_help = "Maximum loss if stock falls below long strike"
+    
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         st.metric(
             "Max Profit", 
             f"${spread.max_profit:.2f}",
-            help="Maximum profit if stock stays above short strike"
+            help=profit_help
         )
     
     with col2:
         st.metric(
             "Max Loss", 
             f"${spread.max_loss:.2f}",
-            help="Maximum loss if stock falls below long strike"
+            help=loss_help
         )
     
     with col3:
@@ -119,50 +186,112 @@ def display_spread_details(spread: SpreadType) -> None:
     st.markdown("---")
     st.markdown("#### Trade Summary")
     
-    # Get leg info based on spread type
-    if hasattr(spread, 'option_type'):
-        option_type = spread.option_type.capitalize()
-        short_leg = spread.short_leg
-        long_leg = spread.long_leg
-        net_prem = abs(spread.net_premium)
-        prem_label = "Total Credit" if spread.is_credit else "Total Debit"
-    else:
-        option_type = "Put"
-        short_leg = spread.short_put
-        long_leg = spread.long_put
-        net_prem = spread.net_credit
+    if is_iron_condor:
+        # Iron Condor contracts
+        st.caption("Put Credit Spread")
+        pcol1, pcol2 = st.columns(2)
+        with pcol1:
+            st.markdown(f"**${spread.short_put_strike:.2f} Put** - Sell to open")
+        with pcol2:
+            st.markdown(f"**${spread.long_put_strike:.2f} Put** - Buy to open")
+        
+        st.caption("Call Credit Spread")
+        ccol1, ccol2 = st.columns(2)
+        with ccol1:
+            st.markdown(f"**${spread.short_call_strike:.2f} Call** - Sell to open")
+        with ccol2:
+            st.markdown(f"**${spread.long_call_strike:.2f} Call** - Buy to open")
+        
+        net_prem = spread.net_premium
         prem_label = "Total Credit"
-    
-    # Contracts info in a cleaner format
-    st.caption("Contracts")
-    tcol1, tcol2 = st.columns(2)
-    with tcol1:
-        st.markdown(f"**${spread.short_strike:.2f} {option_type}** - Sell to open")
-        st.markdown(f"Premium: **${short_leg.premium:.2f}**")
-    with tcol2:
-        st.markdown(f"**${spread.long_strike:.2f} {option_type}** - Buy to open")
-        st.markdown(f"Premium: **${long_leg.premium:.2f}**")
+        
+    elif is_iron_butterfly:
+        # Iron Butterfly contracts
+        st.caption("Short ATM Straddle")
+        scol1, scol2 = st.columns(2)
+        with scol1:
+            st.markdown(f"**${spread.center_strike:.2f} Put** - Sell to open")
+        with scol2:
+            st.markdown(f"**${spread.center_strike:.2f} Call** - Sell to open")
+        
+        st.caption("Long Wings (Protection)")
+        wcol1, wcol2 = st.columns(2)
+        with wcol1:
+            st.markdown(f"**${spread.long_put_strike:.2f} Put** - Buy to open")
+        with wcol2:
+            st.markdown(f"**${spread.long_call_strike:.2f} Call** - Buy to open")
+        
+        net_prem = spread.net_premium
+        prem_label = "Total Credit"
+        
+    else:
+        # Regular vertical spread
+        if hasattr(spread, 'option_type'):
+            option_type = spread.option_type.capitalize()
+            short_leg = spread.short_leg
+            long_leg = spread.long_leg
+            net_prem = abs(spread.net_premium)
+            prem_label = "Total Credit" if spread.is_credit else "Total Debit"
+        else:
+            option_type = "Put"
+            short_leg = spread.short_put
+            long_leg = spread.long_put
+            net_prem = spread.net_credit
+            prem_label = "Total Credit"
+        
+        st.caption("Contracts")
+        tcol1, tcol2 = st.columns(2)
+        with tcol1:
+            st.markdown(f"**${spread.short_strike:.2f} {option_type}** - Sell to open")
+            st.markdown(f"Premium: **${short_leg.premium:.2f}**")
+        with tcol2:
+            st.markdown(f"**${spread.long_strike:.2f} {option_type}** - Buy to open")
+            st.markdown(f"Premium: **${long_leg.premium:.2f}**")
     
     st.markdown("")
     
     # Summary metrics in a highlighted box
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.caption(prem_label)
-        st.subheader(f"${net_prem:.2f}")
-    
-    with col2:
-        st.caption("Max Profit")
-        st.subheader(f":green[${spread.max_profit:.2f}]")
-    
-    with col3:
-        st.caption("Breakeven")
-        st.subheader(f"${spread.breakeven:.2f}")
-    
-    with col4:
-        st.caption("Max Loss")
-        st.subheader(f":red[-${spread.max_loss:.2f}]")
+    if is_iron_condor or is_iron_butterfly:
+        # 5 columns for multi-leg strategies (2 breakevens)
+        col1, col2, col3, col4, col5 = st.columns(5)
+        
+        with col1:
+            st.caption(prem_label)
+            st.subheader(f"${net_prem:.2f}")
+        
+        with col2:
+            st.caption("Max Profit")
+            st.subheader(f":green[${spread.max_profit:.2f}]")
+        
+        with col3:
+            st.caption("Lower BE")
+            st.subheader(f"${spread.breakeven_lower:.2f}")
+        
+        with col4:
+            st.caption("Upper BE")
+            st.subheader(f"${spread.breakeven_upper:.2f}")
+        
+        with col5:
+            st.caption("Max Loss")
+            st.subheader(f":red[-${spread.max_loss:.2f}]")
+    else:
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.caption(prem_label)
+            st.subheader(f"${net_prem:.2f}")
+        
+        with col2:
+            st.caption("Max Profit")
+            st.subheader(f":green[${spread.max_profit:.2f}]")
+        
+        with col3:
+            st.caption("Breakeven")
+            st.subheader(f"${spread.breakeven:.2f}")
+        
+        with col4:
+            st.caption("Max Loss")
+            st.subheader(f":red[-${spread.max_loss:.2f}]")
     
     # Greeks
     st.markdown("---")
@@ -192,7 +321,7 @@ def display_spreads_table(spreads: List[SpreadType]) -> Optional[int]:
     Display a table of spread opportunities with selection.
     
     Parameters:
-        spreads: List of BullPutSpread objects
+        spreads: List of spread objects (VerticalSpread, IronCondor, or IronButterfly)
     
     Returns:
         Index of selected spread, or None
@@ -204,45 +333,80 @@ def display_spreads_table(spreads: List[SpreadType]) -> Optional[int]:
     st.markdown("### Available Spreads")
     st.caption("Sorted by risk/reward ratio (lower is better)")
     
+    # Check if this is a multi-leg strategy
+    first_spread = spreads[0]
+    is_iron_condor = hasattr(first_spread, 'short_put_strike')
+    is_iron_butterfly = hasattr(first_spread, 'center_strike')
+    
     # Create DataFrame for display
     data = []
     for i, spread in enumerate(spreads):
         # Handle different spread types
         if hasattr(spread, 'net_premium'):
             net_prem = abs(spread.net_premium)
-            prem_label = "Credit" if spread.is_credit else "Debit"
+            prem_label = "Credit" if getattr(spread, 'is_credit', True) or spread.strategy_type == "credit" else "Debit"
         else:
-            net_prem = spread.net_credit
+            net_prem = getattr(spread, 'net_credit', 0)
             prem_label = "Credit"
         
         # Calculate risk/reward ratio
         risk_reward = abs(spread.max_loss) / spread.max_profit if spread.max_profit > 0 else 0
         
-        data.append({
-            "#": i + 1,
-            "Expiration": spread.expiration_date.strftime("%b %d"),
-            "Short Strike": f"${spread.short_strike:.2f}",
-            "Long Strike": f"${spread.long_strike:.2f}",
-            "Width": f"${spread.spread_width:.2f}",
-            f"{prem_label}/Share": f"${net_prem:.2f}",
-            "Risk/Reward": f"{risk_reward:.2f}",
-            "Max Profit": f"${spread.max_profit:.2f}",
-            "Max Loss": f"${spread.max_loss:.2f}",
-            "Breakeven": f"${spread.breakeven:.2f}",
-            "Win Prob": f"{spread.probability_of_profit:.1%}",
-            "ROC": f"{spread.return_on_capital:.1%}",
-        })
+        if is_iron_condor:
+            data.append({
+                "#": i + 1,
+                "Expiration": spread.expiration_date.strftime("%b %d"),
+                "Put Spread": f"${spread.short_put_strike:.0f}/${spread.long_put_strike:.0f}",
+                "Call Spread": f"${spread.short_call_strike:.0f}/${spread.long_call_strike:.0f}",
+                "Credit": f"${net_prem:.2f}",
+                "Max Profit": f"${spread.max_profit:.2f}",
+                "Max Loss": f"${spread.max_loss:.2f}",
+                "Lower BE": f"${spread.breakeven_lower:.2f}",
+                "Upper BE": f"${spread.breakeven_upper:.2f}",
+                "Win Prob": f"{spread.probability_of_profit:.1%}",
+                "Risk/Reward": f"{risk_reward:.2f}",
+                "ROC": f"{spread.return_on_capital:.1%}",
+            })
+        elif is_iron_butterfly:
+            data.append({
+                "#": i + 1,
+                "Expiration": spread.expiration_date.strftime("%b %d"),
+                "Center": f"${spread.center_strike:.0f}",
+                "Wings": f"${spread.long_put_strike:.0f} / ${spread.long_call_strike:.0f}",
+                "Credit": f"${net_prem:.2f}",
+                "Max Profit": f"${spread.max_profit:.2f}",
+                "Max Loss": f"${spread.max_loss:.2f}",
+                "Lower BE": f"${spread.breakeven_lower:.2f}",
+                "Upper BE": f"${spread.breakeven_upper:.2f}",
+                "Win Prob": f"{spread.probability_of_profit:.1%}",
+                "Risk/Reward": f"{risk_reward:.2f}",
+                "ROC": f"{spread.return_on_capital:.1%}",
+            })
+        else:
+            # Regular vertical spread
+            data.append({
+                "#": i + 1,
+                "Expiration": spread.expiration_date.strftime("%b %d"),
+                "Short Strike": f"${spread.short_strike:.2f}",
+                "Long Strike": f"${spread.long_strike:.2f}",
+                "Width": f"${spread.spread_width:.2f}",
+                f"{prem_label}/Share": f"${net_prem:.2f}",
+                "Risk/Reward": f"{risk_reward:.2f}",
+                "Max Profit": f"${spread.max_profit:.2f}",
+                "Max Loss": f"${spread.max_loss:.2f}",
+                "Breakeven": f"${spread.breakeven:.2f}",
+                "Win Prob": f"{spread.probability_of_profit:.1%}",
+                "ROC": f"{spread.return_on_capital:.1%}",
+            })
     
     df = pd.DataFrame(data)
     
     # Remove columns with no data (but keep important columns like Expiration)
-    cols_to_keep = ['#', 'Expiration', 'Short Strike', 'Long Strike', 'Win Prob', 'ROC', 'Risk/Reward']
+    cols_to_keep = ['#', 'Expiration', 'Win Prob', 'ROC', 'Risk/Reward']
     cols_to_drop = []
     for col in df.columns:
-        # Skip important columns
         if col in cols_to_keep:
             continue
-        # Check if column has all empty, null, or N/A values
         if df[col].isna().all() or (df[col] == '').all() or (df[col] == 'N/A').all():
             cols_to_drop.append(col)
     
@@ -255,12 +419,19 @@ def display_spreads_table(spreads: List[SpreadType]) -> Optional[int]:
         hide_index=True,
     )
     
-    # Selection
+    # Selection format based on strategy type
     if len(spreads) > 0:
+        if is_iron_condor:
+            format_func = lambda i: f"#{i+1}: Put ${spreads[i].short_put_strike:.0f}/${spreads[i].long_put_strike:.0f} | Call ${spreads[i].short_call_strike:.0f}/${spreads[i].long_call_strike:.0f} (Win: {spreads[i].probability_of_profit:.1%})"
+        elif is_iron_butterfly:
+            format_func = lambda i: f"#{i+1}: Center ${spreads[i].center_strike:.0f} | Wings ${spreads[i].long_put_strike:.0f}-${spreads[i].long_call_strike:.0f} (Win: {spreads[i].probability_of_profit:.1%})"
+        else:
+            format_func = lambda i: f"#{i+1}: ${spreads[i].short_strike:.2f}/${spreads[i].long_strike:.2f} spread (Win: {spreads[i].probability_of_profit:.1%})"
+        
         selected = st.selectbox(
             "Select a spread to view details:",
             options=range(len(spreads)),
-            format_func=lambda i: f"#{i+1}: ${spreads[i].short_strike:.2f}/${spreads[i].long_strike:.2f} spread (Win: {spreads[i].probability_of_profit:.1%})",
+            format_func=format_func,
         )
         return selected
     

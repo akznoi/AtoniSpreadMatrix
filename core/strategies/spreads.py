@@ -379,3 +379,554 @@ def find_vertical_spreads(
     
     return spreads[:max_results]
 
+
+@dataclass
+class IronCondor:
+    """
+    Iron Condor: Put Credit Spread + Call Credit Spread.
+    Profits when stock stays within a range.
+    """
+    
+    put_spread: VerticalSpread  # Put credit spread (lower)
+    call_spread: VerticalSpread  # Call credit spread (upper)
+    underlying_price: float
+    expiration_date: date
+    
+    @property
+    def name(self) -> str:
+        return "Iron Condor"
+    
+    @property
+    def strategy_type(self) -> str:
+        return "credit"
+    
+    @property
+    def option_type(self) -> str:
+        return "both"
+    
+    @property
+    def short_put_strike(self) -> float:
+        return self.put_spread.short_strike
+    
+    @property
+    def long_put_strike(self) -> float:
+        return self.put_spread.long_strike
+    
+    @property
+    def short_call_strike(self) -> float:
+        return self.call_spread.short_strike
+    
+    @property
+    def long_call_strike(self) -> float:
+        return self.call_spread.long_strike
+    
+    @property
+    def put_spread_width(self) -> float:
+        return self.put_spread.spread_width
+    
+    @property
+    def call_spread_width(self) -> float:
+        return self.call_spread.spread_width
+    
+    @property
+    def net_premium(self) -> float:
+        """Total credit received."""
+        return self.put_spread.net_premium + self.call_spread.net_premium
+    
+    @property
+    def max_profit(self) -> float:
+        """Maximum profit = total credit received × 100."""
+        return self.net_premium * 100
+    
+    @property
+    def max_loss(self) -> float:
+        """Maximum loss = wider spread width - credit received."""
+        wider_spread = max(self.put_spread_width, self.call_spread_width)
+        return (wider_spread - self.net_premium) * 100
+    
+    @property
+    def breakeven_lower(self) -> float:
+        """Lower breakeven = short put strike - net credit."""
+        return self.short_put_strike - self.net_premium
+    
+    @property
+    def breakeven_upper(self) -> float:
+        """Upper breakeven = short call strike + net credit."""
+        return self.short_call_strike + self.net_premium
+    
+    @property
+    def breakeven(self) -> float:
+        """Return lower breakeven for display compatibility."""
+        return self.breakeven_lower
+    
+    @property
+    def profit_range(self) -> float:
+        """Price range where trade is profitable."""
+        return self.breakeven_upper - self.breakeven_lower
+    
+    @property
+    def probability_of_profit(self) -> float:
+        """Approximate probability both spreads expire worthless."""
+        # Simplified: use the lower of the two probabilities
+        # In reality, these are correlated so combined prob is higher
+        return min(self.put_spread.probability_of_profit, 
+                   self.call_spread.probability_of_profit)
+    
+    @property
+    def capital_requirement(self) -> float:
+        """Margin required = wider spread width × 100."""
+        return max(self.put_spread_width, self.call_spread_width) * 100
+    
+    @property
+    def return_on_capital(self) -> float:
+        """Potential return on capital."""
+        if self.capital_requirement == 0:
+            return 0
+        return self.max_profit / self.capital_requirement
+    
+    @property
+    def risk_reward_ratio(self) -> float:
+        """Risk to reward ratio."""
+        if self.max_profit == 0:
+            return float("inf")
+        return self.max_loss / self.max_profit
+    
+    @property
+    def short_strike(self) -> float:
+        """For compatibility - return short put strike."""
+        return self.short_put_strike
+    
+    @property
+    def long_strike(self) -> float:
+        """For compatibility - return long put strike."""
+        return self.long_put_strike
+    
+    @property
+    def spread_width(self) -> float:
+        """For compatibility - return wider spread."""
+        return max(self.put_spread_width, self.call_spread_width)
+    
+    @property
+    def implied_volatility(self) -> float:
+        """Average IV from both spreads."""
+        return (self.put_spread.implied_volatility + self.call_spread.implied_volatility) / 2
+    
+    @property
+    def time_to_expiry(self) -> float:
+        return self.put_spread.time_to_expiry
+    
+    def get_greeks(self) -> Dict[str, float]:
+        """Combined Greeks from both spreads."""
+        put_greeks = self.put_spread.get_greeks()
+        call_greeks = self.call_spread.get_greeks()
+        return {
+            "delta": put_greeks["delta"] + call_greeks["delta"],
+            "gamma": put_greeks["gamma"] + call_greeks["gamma"],
+            "theta": put_greeks["theta"] + call_greeks["theta"],
+            "vega": put_greeks["vega"] + call_greeks["vega"],
+            "rho": put_greeks["rho"] + call_greeks["rho"],
+        }
+    
+    def to_dict(self) -> Dict[str, Any]:
+        greeks = self.get_greeks()
+        return {
+            "Strategy": self.name,
+            "Short Put": self.short_put_strike,
+            "Long Put": self.long_put_strike,
+            "Short Call": self.short_call_strike,
+            "Long Call": self.long_call_strike,
+            "Net Credit": f"${self.net_premium:.2f}",
+            "Max Profit": f"${self.max_profit:.2f}",
+            "Max Loss": f"${self.max_loss:.2f}",
+            "Lower BE": f"${self.breakeven_lower:.2f}",
+            "Upper BE": f"${self.breakeven_upper:.2f}",
+            "Win Probability": f"{self.probability_of_profit:.1%}",
+            "Risk/Reward": f"{self.risk_reward_ratio:.2f}",
+            "Return on Capital": f"{self.return_on_capital:.1%}",
+            "Delta": f"{greeks['delta']:.2f}",
+            "Theta": f"${greeks['theta']:.2f}/day",
+        }
+
+
+@dataclass
+class IronButterfly:
+    """
+    Iron Butterfly: Sell ATM put + Sell ATM call + Buy OTM put + Buy OTM call.
+    All short strikes are at the same price (ATM).
+    Higher premium but narrower profit zone than Iron Condor.
+    """
+    
+    put_spread: VerticalSpread  # Put credit spread
+    call_spread: VerticalSpread  # Call credit spread
+    underlying_price: float
+    expiration_date: date
+    center_strike: float  # The ATM strike where both shorts are placed
+    
+    @property
+    def name(self) -> str:
+        return "Iron Butterfly"
+    
+    @property
+    def strategy_type(self) -> str:
+        return "credit"
+    
+    @property
+    def option_type(self) -> str:
+        return "both"
+    
+    @property
+    def short_strike(self) -> float:
+        """Center strike (same for put and call)."""
+        return self.center_strike
+    
+    @property
+    def long_put_strike(self) -> float:
+        return self.put_spread.long_strike
+    
+    @property
+    def long_call_strike(self) -> float:
+        return self.call_spread.long_strike
+    
+    @property
+    def wing_width(self) -> float:
+        """Width from center to wings."""
+        return max(
+            abs(self.center_strike - self.long_put_strike),
+            abs(self.long_call_strike - self.center_strike)
+        )
+    
+    @property
+    def net_premium(self) -> float:
+        """Total credit received."""
+        return self.put_spread.net_premium + self.call_spread.net_premium
+    
+    @property
+    def max_profit(self) -> float:
+        """Maximum profit = total credit received × 100."""
+        return self.net_premium * 100
+    
+    @property
+    def max_loss(self) -> float:
+        """Maximum loss = wing width - credit received."""
+        return (self.wing_width - self.net_premium) * 100
+    
+    @property
+    def breakeven_lower(self) -> float:
+        """Lower breakeven = center strike - net credit."""
+        return self.center_strike - self.net_premium
+    
+    @property
+    def breakeven_upper(self) -> float:
+        """Upper breakeven = center strike + net credit."""
+        return self.center_strike + self.net_premium
+    
+    @property
+    def breakeven(self) -> float:
+        """Return lower breakeven for display compatibility."""
+        return self.breakeven_lower
+    
+    @property
+    def probability_of_profit(self) -> float:
+        """Probability of any profit (stock between breakevens)."""
+        # Iron butterflies have lower probability but higher premium
+        return min(self.put_spread.probability_of_profit,
+                   self.call_spread.probability_of_profit) * 0.9
+    
+    @property
+    def capital_requirement(self) -> float:
+        """Margin required = wing width × 100."""
+        return self.wing_width * 100
+    
+    @property
+    def return_on_capital(self) -> float:
+        if self.capital_requirement == 0:
+            return 0
+        return self.max_profit / self.capital_requirement
+    
+    @property
+    def risk_reward_ratio(self) -> float:
+        if self.max_profit == 0:
+            return float("inf")
+        return self.max_loss / self.max_profit
+    
+    @property
+    def long_strike(self) -> float:
+        """For compatibility - return long put strike."""
+        return self.long_put_strike
+    
+    @property
+    def spread_width(self) -> float:
+        """For compatibility."""
+        return self.wing_width
+    
+    @property
+    def implied_volatility(self) -> float:
+        return (self.put_spread.implied_volatility + self.call_spread.implied_volatility) / 2
+    
+    @property
+    def time_to_expiry(self) -> float:
+        return self.put_spread.time_to_expiry
+    
+    def get_greeks(self) -> Dict[str, float]:
+        put_greeks = self.put_spread.get_greeks()
+        call_greeks = self.call_spread.get_greeks()
+        return {
+            "delta": put_greeks["delta"] + call_greeks["delta"],
+            "gamma": put_greeks["gamma"] + call_greeks["gamma"],
+            "theta": put_greeks["theta"] + call_greeks["theta"],
+            "vega": put_greeks["vega"] + call_greeks["vega"],
+            "rho": put_greeks["rho"] + call_greeks["rho"],
+        }
+    
+    def to_dict(self) -> Dict[str, Any]:
+        greeks = self.get_greeks()
+        return {
+            "Strategy": self.name,
+            "Center Strike": self.center_strike,
+            "Long Put": self.long_put_strike,
+            "Long Call": self.long_call_strike,
+            "Net Credit": f"${self.net_premium:.2f}",
+            "Max Profit": f"${self.max_profit:.2f}",
+            "Max Loss": f"${self.max_loss:.2f}",
+            "Lower BE": f"${self.breakeven_lower:.2f}",
+            "Upper BE": f"${self.breakeven_upper:.2f}",
+            "Win Probability": f"{self.probability_of_profit:.1%}",
+            "Risk/Reward": f"{self.risk_reward_ratio:.2f}",
+            "Return on Capital": f"{self.return_on_capital:.1%}",
+            "Delta": f"{greeks['delta']:.2f}",
+            "Theta": f"${greeks['theta']:.2f}/day",
+        }
+
+
+def find_iron_condors(
+    calls_df: pd.DataFrame,
+    puts_df: pd.DataFrame,
+    underlying_price: float,
+    expiration_date: date,
+    time_to_expiry: float,
+    risk_free_rate: float,
+    min_probability: float = 0.50,
+    max_results: int = 20,
+) -> List[IronCondor]:
+    """
+    Find Iron Condor opportunities.
+    
+    An Iron Condor combines:
+    - Put Credit Spread (below current price)
+    - Call Credit Spread (above current price)
+    """
+    def get_mid_price(row):
+        bid = row.get("bid", 0)
+        ask = row.get("ask", 0)
+        if bid > 0 and ask > 0:
+            return (bid + ask) / 2
+        return row.get("lastPrice", 0)
+    
+    condors = []
+    
+    put_strikes = sorted(puts_df["strike"].unique())
+    call_strikes = sorted(calls_df["strike"].unique())
+    
+    # Find put credit spreads (below current price)
+    put_spreads = []
+    for i, short_strike in enumerate(put_strikes):
+        if short_strike >= underlying_price:
+            continue  # Skip ITM puts
+        
+        row_short = puts_df[puts_df["strike"] == short_strike].iloc[0]
+        short_premium = get_mid_price(row_short)
+        short_iv = row_short.get("impliedVolatility", 0.3)
+        
+        for long_strike in put_strikes:
+            if long_strike >= short_strike:
+                continue  # Long must be lower
+            
+            row_long = puts_df[puts_df["strike"] == long_strike].iloc[0]
+            long_premium = get_mid_price(row_long)
+            
+            if short_premium <= long_premium or short_premium <= 0 or long_premium <= 0:
+                continue
+            
+            spread = VerticalSpread(
+                short_leg=StrategyLeg(option_type="put", strike=short_strike, premium=short_premium, position="short"),
+                long_leg=StrategyLeg(option_type="put", strike=long_strike, premium=long_premium, position="long"),
+                underlying_price=underlying_price,
+                expiration_date=expiration_date,
+                time_to_expiry=time_to_expiry,
+                risk_free_rate=risk_free_rate,
+                implied_volatility=short_iv if short_iv > 0 else 0.3,
+                strategy_type="credit",
+                option_type="put",
+            )
+            
+            if spread.probability_of_profit >= min_probability:
+                put_spreads.append(spread)
+    
+    # Find call credit spreads (above current price)
+    call_spreads = []
+    for short_strike in call_strikes:
+        if short_strike <= underlying_price:
+            continue  # Skip ITM calls
+        
+        row_short = calls_df[calls_df["strike"] == short_strike].iloc[0]
+        short_premium = get_mid_price(row_short)
+        short_iv = row_short.get("impliedVolatility", 0.3)
+        
+        for long_strike in call_strikes:
+            if long_strike <= short_strike:
+                continue  # Long must be higher
+            
+            row_long = calls_df[calls_df["strike"] == long_strike].iloc[0]
+            long_premium = get_mid_price(row_long)
+            
+            if short_premium <= long_premium or short_premium <= 0 or long_premium <= 0:
+                continue
+            
+            spread = VerticalSpread(
+                short_leg=StrategyLeg(option_type="call", strike=short_strike, premium=short_premium, position="short"),
+                long_leg=StrategyLeg(option_type="call", strike=long_strike, premium=long_premium, position="long"),
+                underlying_price=underlying_price,
+                expiration_date=expiration_date,
+                time_to_expiry=time_to_expiry,
+                risk_free_rate=risk_free_rate,
+                implied_volatility=short_iv if short_iv > 0 else 0.3,
+                strategy_type="credit",
+                option_type="call",
+            )
+            
+            if spread.probability_of_profit >= min_probability:
+                call_spreads.append(spread)
+    
+    # Combine into Iron Condors
+    for put_spread in put_spreads[:15]:  # Limit combinations
+        for call_spread in call_spreads[:15]:
+            condor = IronCondor(
+                put_spread=put_spread,
+                call_spread=call_spread,
+                underlying_price=underlying_price,
+                expiration_date=expiration_date,
+            )
+            
+            # Filter by combined probability
+            if condor.probability_of_profit >= min_probability:
+                condors.append(condor)
+    
+    # Sort by risk/reward ratio
+    condors.sort(key=lambda c: c.risk_reward_ratio)
+    
+    return condors[:max_results]
+
+
+def find_iron_butterflies(
+    calls_df: pd.DataFrame,
+    puts_df: pd.DataFrame,
+    underlying_price: float,
+    expiration_date: date,
+    time_to_expiry: float,
+    risk_free_rate: float,
+    min_probability: float = 0.30,  # Lower threshold for butterflies
+    max_results: int = 20,
+) -> List[IronButterfly]:
+    """
+    Find Iron Butterfly opportunities.
+    
+    An Iron Butterfly has:
+    - Short ATM put + Short ATM call (same strike)
+    - Long OTM put (lower) + Long OTM call (higher)
+    """
+    def get_mid_price(row):
+        bid = row.get("bid", 0)
+        ask = row.get("ask", 0)
+        if bid > 0 and ask > 0:
+            return (bid + ask) / 2
+        return row.get("lastPrice", 0)
+    
+    butterflies = []
+    
+    # Find common strikes between puts and calls
+    put_strikes = set(puts_df["strike"].unique())
+    call_strikes = set(calls_df["strike"].unique())
+    common_strikes = sorted(put_strikes & call_strikes)
+    
+    if not common_strikes:
+        return []
+    
+    # Find ATM strike (closest to current price)
+    atm_candidates = sorted(common_strikes, key=lambda s: abs(s - underlying_price))[:5]
+    
+    for center_strike in atm_candidates:
+        # Get short options at center strike
+        put_row = puts_df[puts_df["strike"] == center_strike]
+        call_row = calls_df[calls_df["strike"] == center_strike]
+        
+        if put_row.empty or call_row.empty:
+            continue
+        
+        short_put_premium = get_mid_price(put_row.iloc[0])
+        short_call_premium = get_mid_price(call_row.iloc[0])
+        put_iv = put_row.iloc[0].get("impliedVolatility", 0.3)
+        call_iv = call_row.iloc[0].get("impliedVolatility", 0.3)
+        
+        if short_put_premium <= 0 or short_call_premium <= 0:
+            continue
+        
+        # Find wing strikes
+        lower_strikes = [s for s in common_strikes if s < center_strike]
+        upper_strikes = [s for s in common_strikes if s > center_strike]
+        
+        for long_put_strike in lower_strikes[-5:]:  # Closest lower strikes
+            long_put_row = puts_df[puts_df["strike"] == long_put_strike]
+            if long_put_row.empty:
+                continue
+            long_put_premium = get_mid_price(long_put_row.iloc[0])
+            
+            for long_call_strike in upper_strikes[:5]:  # Closest upper strikes
+                long_call_row = calls_df[calls_df["strike"] == long_call_strike]
+                if long_call_row.empty:
+                    continue
+                long_call_premium = get_mid_price(long_call_row.iloc[0])
+                
+                if long_put_premium <= 0 or long_call_premium <= 0:
+                    continue
+                
+                # Create the component spreads
+                put_spread = VerticalSpread(
+                    short_leg=StrategyLeg(option_type="put", strike=center_strike, premium=short_put_premium, position="short"),
+                    long_leg=StrategyLeg(option_type="put", strike=long_put_strike, premium=long_put_premium, position="long"),
+                    underlying_price=underlying_price,
+                    expiration_date=expiration_date,
+                    time_to_expiry=time_to_expiry,
+                    risk_free_rate=risk_free_rate,
+                    implied_volatility=put_iv if put_iv > 0 else 0.3,
+                    strategy_type="credit",
+                    option_type="put",
+                )
+                
+                call_spread = VerticalSpread(
+                    short_leg=StrategyLeg(option_type="call", strike=center_strike, premium=short_call_premium, position="short"),
+                    long_leg=StrategyLeg(option_type="call", strike=long_call_strike, premium=long_call_premium, position="long"),
+                    underlying_price=underlying_price,
+                    expiration_date=expiration_date,
+                    time_to_expiry=time_to_expiry,
+                    risk_free_rate=risk_free_rate,
+                    implied_volatility=call_iv if call_iv > 0 else 0.3,
+                    strategy_type="credit",
+                    option_type="call",
+                )
+                
+                butterfly = IronButterfly(
+                    put_spread=put_spread,
+                    call_spread=call_spread,
+                    underlying_price=underlying_price,
+                    expiration_date=expiration_date,
+                    center_strike=center_strike,
+                )
+                
+                if butterfly.probability_of_profit >= min_probability:
+                    butterflies.append(butterfly)
+    
+    # Sort by risk/reward ratio
+    butterflies.sort(key=lambda b: b.risk_reward_ratio)
+    
+    return butterflies[:max_results]
+

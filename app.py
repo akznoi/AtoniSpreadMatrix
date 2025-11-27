@@ -30,7 +30,7 @@ from data.options_chain import (
     get_atm_iv,
     filter_liquid_options,
 )
-from core.strategies.spreads import find_vertical_spreads
+from core.strategies.spreads import find_vertical_spreads, find_iron_condors, find_iron_butterflies
 from ui.components import (
     display_stock_info,
     display_spread_details,
@@ -74,10 +74,12 @@ from utils.validation import validate_ticker
 
 # Strategy definitions
 STRATEGIES = {
-    "Put Credit Spread": {"option_type": "put", "strategy_type": "credit", "direction": "Bullish"},
-    "Put Debit Spread": {"option_type": "put", "strategy_type": "debit", "direction": "Bearish"},
-    "Call Credit Spread": {"option_type": "call", "strategy_type": "credit", "direction": "Bearish"},
-    "Call Debit Spread": {"option_type": "call", "strategy_type": "debit", "direction": "Bullish"},
+    "Put Credit Spread - Bullish": {"option_type": "put", "strategy_type": "credit", "direction": "Bullish", "legs": 2},
+    "Put Debit Spread - Bearish": {"option_type": "put", "strategy_type": "debit", "direction": "Bearish", "legs": 2},
+    "Call Credit Spread - Bearish": {"option_type": "call", "strategy_type": "credit", "direction": "Bearish", "legs": 2},
+    "Call Debit Spread - Bullish": {"option_type": "call", "strategy_type": "debit", "direction": "Bullish", "legs": 2},
+    "Iron Condor - Neutral": {"option_type": "both", "strategy_type": "credit", "direction": "Neutral", "legs": 4},
+    "Iron Butterfly - Neutral": {"option_type": "both", "strategy_type": "credit", "direction": "Neutral", "legs": 4},
 }
 
 
@@ -475,48 +477,95 @@ if ticker:
                             # Fetch options chain
                             calls, puts = get_options_chain(ticker, selected_exp)
                             
-                            # Select the appropriate options chain
-                            options_df = calls if option_type == "call" else puts
+                            # Calculate time to expiry
+                            tte = calculate_time_to_expiry(selected_exp)
                             
-                            # Filter for liquidity
-                            options_filtered = filter_liquid_options(
-                                options_df,
-                                min_open_interest=min_open_interest,
-                            )
-                            
-                            if options_filtered.empty:
-                                st.warning(f"No liquid {option_type} options found. Try lowering the minimum open interest.")
+                            # Handle multi-leg strategies (Iron Condor, Iron Butterfly)
+                            if option_type == "both":
+                                # Filter both chains
+                                calls_filtered = filter_liquid_options(calls, min_open_interest=min_open_interest)
+                                puts_filtered = filter_liquid_options(puts, min_open_interest=min_open_interest)
+                                
+                                if calls_filtered.empty or puts_filtered.empty:
+                                    st.warning("No liquid options found. Try lowering the minimum open interest.")
+                                else:
+                                    # Get ATM IV from puts
+                                    atm_iv = get_atm_iv(puts_filtered, current_price)
+                                    
+                                    if "Iron Condor" in strategy:
+                                        spreads = find_iron_condors(
+                                            calls_df=calls_filtered,
+                                            puts_df=puts_filtered,
+                                            underlying_price=current_price,
+                                            expiration_date=selected_exp,
+                                            time_to_expiry=tte,
+                                            risk_free_rate=risk_free,
+                                            min_probability=win_probability,
+                                            max_results=MAX_SPREADS_TO_DISPLAY,
+                                        )
+                                    else:  # Iron Butterfly
+                                        spreads = find_iron_butterflies(
+                                            calls_df=calls_filtered,
+                                            puts_df=puts_filtered,
+                                            underlying_price=current_price,
+                                            expiration_date=selected_exp,
+                                            time_to_expiry=tte,
+                                            risk_free_rate=risk_free,
+                                            min_probability=max(win_probability - 0.2, 0.30),  # Lower threshold for butterflies
+                                            max_results=MAX_SPREADS_TO_DISPLAY,
+                                        )
+                                    
+                                    # Store in session state
+                                    st.session_state["last_analysis"] = {
+                                        "spreads": spreads,
+                                        "current_price": current_price,
+                                        "strategy": strategy,
+                                        "options_df": puts_filtered,
+                                        "days_to_exp": days_to_exp,
+                                        "hist_vol": hist_vol,
+                                    }
+                                    st.session_state["last_strategy"] = strategy
+                                    st.session_state["last_expiration"] = selected_exp
                             else:
-                                # Calculate time to expiry
-                                tte = calculate_time_to_expiry(selected_exp)
+                                # Single-leg strategies (vertical spreads)
+                                options_df = calls if option_type == "call" else puts
                                 
-                                # Get ATM implied volatility
-                                atm_iv = get_atm_iv(options_filtered, current_price)
-                                
-                                # Find spreads (all possible combinations)
-                                spreads = find_vertical_spreads(
-                                    options_df=options_filtered,
-                                    underlying_price=current_price,
-                                    expiration_date=selected_exp,
-                                    time_to_expiry=tte,
-                                    risk_free_rate=risk_free,
-                                    option_type=option_type,
-                                    strategy_type=strategy_type,
-                                    min_probability=win_probability,
-                                    max_results=MAX_SPREADS_TO_DISPLAY,
+                                # Filter for liquidity
+                                options_filtered = filter_liquid_options(
+                                    options_df,
+                                    min_open_interest=min_open_interest,
                                 )
                                 
-                                # Store in session state
-                                st.session_state["last_analysis"] = {
-                                    "spreads": spreads,
-                                    "current_price": current_price,
-                                    "strategy": strategy,
-                                    "options_df": options_filtered,
-                                    "days_to_exp": days_to_exp,
-                                    "hist_vol": hist_vol,
-                                }
-                                st.session_state["last_strategy"] = strategy
-                                st.session_state["last_expiration"] = selected_exp
+                                if options_filtered.empty:
+                                    st.warning(f"No liquid {option_type} options found. Try lowering the minimum open interest.")
+                                else:
+                                    # Get ATM implied volatility
+                                    atm_iv = get_atm_iv(options_filtered, current_price)
+                                    
+                                    # Find spreads (all possible combinations)
+                                    spreads = find_vertical_spreads(
+                                        options_df=options_filtered,
+                                        underlying_price=current_price,
+                                        expiration_date=selected_exp,
+                                        time_to_expiry=tte,
+                                        risk_free_rate=risk_free,
+                                        option_type=option_type,
+                                        strategy_type=strategy_type,
+                                        min_probability=win_probability,
+                                        max_results=MAX_SPREADS_TO_DISPLAY,
+                                    )
+                                    
+                                    # Store in session state
+                                    st.session_state["last_analysis"] = {
+                                        "spreads": spreads,
+                                        "current_price": current_price,
+                                        "strategy": strategy,
+                                        "options_df": options_filtered,
+                                        "days_to_exp": days_to_exp,
+                                        "hist_vol": hist_vol,
+                                    }
+                                    st.session_state["last_strategy"] = strategy
+                                    st.session_state["last_expiration"] = selected_exp
                     
                     # Display results
                     if "last_analysis" in st.session_state:
