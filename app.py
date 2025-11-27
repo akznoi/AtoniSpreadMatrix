@@ -142,7 +142,7 @@ st.markdown('''
 </p>
 <p style="color: #888; font-size: 0.9rem; font-style: italic; margin-top: 0.5rem; line-height: 1.6;">
     <strong>How to use:</strong> In the sidebar, enter a stock ticker symbol, select your spread strategy, 
-    set the target win probability, choose spread widths, and set minimum open interest for liquidity. 
+    set the target win probability, and set minimum open interest for liquidity. 
     Click <strong>Analyze</strong> to load data. Then select your preferred expiration date to view 
     all possible spread combinations matching your criteria.
 </p>
@@ -200,14 +200,6 @@ with st.sidebar:
         format="%d%%",
         help="Minimum probability of profit (based on delta)",
     ) / 100
-    
-    # Spread width options
-    spread_widths = st.multiselect(
-        "Spread Widths ($)",
-        options=[1.0, 2.5, 5.0, 10.0, 15.0, 20.0],
-        default=[2.5, 5.0, 10.0],
-        help="Strike width between short and long options",
-    )
     
     # Liquidity filter
     min_open_interest = st.number_input(
@@ -475,7 +467,7 @@ if ticker:
                                 # Get ATM implied volatility
                                 atm_iv = get_atm_iv(options_filtered, current_price)
                                 
-                                # Find spreads
+                                # Find spreads (all possible combinations)
                                 spreads = find_vertical_spreads(
                                     options_df=options_filtered,
                                     underlying_price=current_price,
@@ -485,7 +477,6 @@ if ticker:
                                     option_type=option_type,
                                     strategy_type=strategy_type,
                                     min_probability=win_probability,
-                                    spread_widths=spread_widths if spread_widths else [5.0],
                                     max_results=MAX_SPREADS_TO_DISPLAY,
                                 )
                                 

@@ -244,7 +244,7 @@ def find_vertical_spreads(
     strategy_type: str,  # 'credit' or 'debit'
     min_probability: float = 0.50,
     spread_widths: Optional[List[float]] = None,
-    max_results: int = 10,
+    max_results: int = 50,
 ) -> List[VerticalSpread]:
     """
     Find suitable vertical spread opportunities.
@@ -258,15 +258,12 @@ def find_vertical_spreads(
         option_type: 'call' or 'put'
         strategy_type: 'credit' or 'debit'
         min_probability: Minimum probability of profit
-        spread_widths: List of spread widths to consider
+        spread_widths: List of spread widths to consider (None = all available)
         max_results: Maximum number of spreads to return
     
     Returns:
         List of VerticalSpread objects sorted by risk/reward ratio
     """
-    if spread_widths is None:
-        spread_widths = [2.5, 5.0, 10.0]
-    
     def get_mid_price(row):
         bid = row.get("bid", 0)
         ask = row.get("ask", 0)
@@ -277,48 +274,57 @@ def find_vertical_spreads(
     spreads = []
     strikes = sorted(options_df["strike"].unique())
     
+    # Generate all possible strike pairs
     for i, strike1 in enumerate(strikes):
         row1 = options_df[options_df["strike"] == strike1].iloc[0]
         premium1 = get_mid_price(row1)
         iv1 = row1.get("impliedVolatility", 0.3)
         
-        for width in spread_widths:
+        for j, strike2 in enumerate(strikes):
+            if i == j:
+                continue
+            
+            # Determine short and long based on strategy
             if option_type == "put":
                 if strategy_type == "credit":
                     # Put Credit Spread: sell higher strike, buy lower strike
+                    if strike1 <= strike2:
+                        continue  # Need strike1 > strike2
                     short_strike = strike1
-                    long_strike = strike1 - width
+                    long_strike = strike2
                 else:
                     # Put Debit Spread: buy higher strike, sell lower strike
+                    if strike1 <= strike2:
+                        continue  # Need strike1 > strike2
                     long_strike = strike1
-                    short_strike = strike1 - width
+                    short_strike = strike2
             else:
                 if strategy_type == "credit":
                     # Call Credit Spread: sell lower strike, buy higher strike
+                    if strike1 >= strike2:
+                        continue  # Need strike1 < strike2
                     short_strike = strike1
-                    long_strike = strike1 + width
+                    long_strike = strike2
                 else:
                     # Call Debit Spread: buy lower strike, sell higher strike
+                    if strike1 >= strike2:
+                        continue  # Need strike1 < strike2
                     long_strike = strike1
-                    short_strike = strike1 + width
+                    short_strike = strike2
             
-            # Check if the other strike exists
-            other_strike = long_strike if strike1 == short_strike else short_strike
-            if other_strike not in strikes:
-                continue
-            
-            row2 = options_df[options_df["strike"] == other_strike].iloc[0]
+            row2 = options_df[options_df["strike"] == strike2].iloc[0]
             premium2 = get_mid_price(row2)
+            iv2 = row2.get("impliedVolatility", 0.3)
             
-            # Determine which is short and which is long
-            if strike1 == short_strike:
+            # Determine premiums based on which strike is short/long
+            if short_strike == strike1:
                 short_premium = premium1
                 long_premium = premium2
                 short_iv = iv1
             else:
                 short_premium = premium2
                 long_premium = premium1
-                short_iv = row2.get("impliedVolatility", 0.3)
+                short_iv = iv2
             
             # Skip invalid spreads
             if short_premium <= 0 or long_premium <= 0:
