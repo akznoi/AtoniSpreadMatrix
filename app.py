@@ -140,6 +140,12 @@ st.markdown('''
 <p style="color: #555; font-size: 1.1rem; margin-top: 0.25rem;">
     Options Strategy Analyzer - Vertical Spreads
 </p>
+<p style="color: #888; font-size: 0.9rem; font-style: italic; margin-top: 0.5rem; line-height: 1.6;">
+    <strong>How to use:</strong> In the sidebar, enter a stock ticker symbol, select your spread strategy, 
+    set the target win probability, choose spread widths, and set minimum open interest for liquidity. 
+    Click <strong>Analyze</strong> to load data. Then select your preferred expiration date to view 
+    all possible spread combinations matching your criteria.
+</p>
 ''', unsafe_allow_html=True)
 st.markdown("---")
 
